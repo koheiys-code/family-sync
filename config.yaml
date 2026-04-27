@@ -1,0 +1,8 @@
+cookie:
+  expiry_days: 1
+credentials:
+  usernames:
+    ayaka:
+      password: $2b$12$yebj1uWJ7.Yvgdkue4XYZeQsenzSCiKXlad4TdXOByEfRn6iQNp66
+    kohei:
+      password: $2b$12$VuoVoT9GSEXK9N6fJSi17ux/6Yd7DXR1PeixjHF3nUbxCAV8CnKm2
