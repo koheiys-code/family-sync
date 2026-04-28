@@ -129,6 +129,9 @@ class ExpensesManager(SpreadSheetOperator):
         except gspread.WorksheetNotFound:
             return None  # シートが見つからなければNoneを返す
 
+    def repr_df(self, df):  # DataFrameを見やすくして返す
+        pass
+
     def update_categories(self):  # カテゴリーをまとめたエクセルを更新する
         values = [['大分類', 'is_income', '小分類', '候補']]  # エクセルの一行目は各列の説明
         for main_category, main_info in self.categories.items():
