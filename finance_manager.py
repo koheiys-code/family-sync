@@ -5,6 +5,15 @@
     https://biz.moneyforward.com/work-efficiency/basic/21627/#PythonGoogle
 
 written by Kohei Yoshida, 2026/04/26
+
+TODO:
+spread sheetのURLをst.secretsに格納する。
+
+TODO:
+service_account_info = json.load(open('service_account.json'))
+credentials = service_account.Credentials.from_service_account_info(
+    service_account_info)
+に変更し、st.secrets[]で内容を取得する。
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -21,9 +30,11 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
 ]
-CATEGORIES_SS_URL = 'https://docs.google.com/spreadsheets/d/1kBFMJX87mq4_UQzAs_8hVxP4AsfQG03iHXSWtCnoshg/edit?usp=drive_link'
-DATABASE_SS_URL = 'https://docs.google.com/spreadsheets/d/18-TJbbkXBC-j3j5uGhUlybByC5my3pv0drnqw01_WZI/edit?usp=drive_link'
-CREDENTIALS_PATH = 'credentials.json'
+
+# TODO:
+# CATEGORIES_SS_URL = ''
+# DATABASE_SS_URL = ''
+# CREDENTIALS_PATH = 'credentials.json'
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
 DEBIT_GAP_DAYS = 10
 
