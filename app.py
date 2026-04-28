@@ -47,4 +47,4 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    st.dataframe(EM.this_month_df, hide_index=True)
+    st.dataframe(EM.get_decorated_df('202604'), hide_index=True)

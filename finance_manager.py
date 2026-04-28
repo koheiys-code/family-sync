@@ -7,13 +7,7 @@
 written by Kohei Yoshida, 2026/04/26
 
 TODO:
-spread sheetのURLをst.secretsに格納する。
-
-TODO:
-service_account_info = json.load(open('service_account.json'))
-credentials = service_account.Credentials.from_service_account_info(
-    service_account_info)
-に変更し、st.secrets[]で内容を取得する。
+get_databaseでcalledを更新する
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -30,11 +24,6 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
 ]
-
-# TODO:
-# CATEGORIES_SS_URL = ''
-# DATABASE_SS_URL = ''
-# CREDENTIALS_PATH = 'credentials.json'
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
 DEBIT_GAP_DAYS = 10
 
