@@ -257,9 +257,9 @@ class ExpensesManager(SpreadSheetOperator):
 
     def _color_text(self, row):
         if row['金額'][0] == '-':
-            color = 'color: #d1ecf1' # 出金は薄い青色
+            color = 'color: #0275d8' # 出金は青色
         else:
-            color = 'color: #f8d7da' # 入金は薄い赤色
+            color = 'color: #d9534f' # 入金は赤色
         return [color] * len(row)
 
 
