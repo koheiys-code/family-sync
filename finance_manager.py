@@ -107,23 +107,22 @@ class ExpensesManager(SpreadSheetOperator):
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
 
-        this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
-        self.this_month_df = self.get_database(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
-        self.called_worksheets = {this_month_sheet_name: self.this_month_df}  # 一度呼び出したワークシートのDataFrameを格納しておく
+        self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameを格納しておく
 
     def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
-        try:
-            database_ws = self.database_ss.worksheet(sheet_name)  # なければここでエラーが起こる
-            return pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)  # 取得できればDataFrameで返す
-        except gspread.WorksheetNotFound:
-            return None  # シートが見つからなければNoneを返す
+        if sheet_name in self.called_worksheets:
+            return self.called_worksheets[sheet_name]
+        else:
+            try:
+                database_ws = self.database_ss.worksheet(sheet_name)  # なければここでエラーが起こる
+                df = pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)  # 取得できればDataFrameで返す
+            except gspread.WorksheetNotFound:
+                df = None  # シートが見つからなければNoneを返す
+            self.called_worksheets[sheet_name] = df
+            return df
 
     def get_decorated_df(self, sheet_name: str):  # 見やすいデータフレームを取得する
-        if sheet_name in self.called_worksheets:
-            df = self.called_worksheets[sheet_name]
-        else:
-            df = self.get_database(sheet_name)
-            self.called_worksheets[sheet_name] = df
+        df = self.get_database(sheet_name)
         if df is None:
             return None  # シートが見つからなければNoneを返す
 
@@ -205,11 +204,7 @@ class ExpensesManager(SpreadSheetOperator):
         for date in between_days_generator(min_date, max_date, margin=self.debit_gap_days):
             sheet_name = date[:6]
             day = date[6:]
-            if sheet_name in self.called_worksheets:  # 既に呼び出し済みの場合
-                df = self.called_worksheets[sheet_name]
-            else:  # 呼び出していなかったら呼び出してみる
-                df = self.get_database(sheet_name)
-                self.called_worksheets[sheet_name] = df
+            df = self.get_database(sheet_name)
             if df is None:  # ワークシートがなければ次のループへ
                 continue
 

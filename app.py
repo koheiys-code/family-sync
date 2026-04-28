@@ -8,6 +8,8 @@
 
 written by Kohei Yoshida, 2026/04/23
 """
+from datetime import datetime
+
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
@@ -47,4 +49,6 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    st.dataframe(EM.get_decorated_df('202604'), hide_index=True)
+    this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
+    df = EM.get_decorated_df(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
+    st.dataframe(df, hide_index=True)
