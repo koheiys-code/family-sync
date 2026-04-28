@@ -129,8 +129,21 @@ class ExpensesManager(SpreadSheetOperator):
         except gspread.WorksheetNotFound:
             return None  # シートが見つからなければNoneを返す
 
-    def repr_df(self, df):  # DataFrameを見やすくして返す
-        pass
+    def get_decorated_df(self, sheet_name: str):  # 見やすいデータフレームを取得する
+        if sheet_name in self.called_worksheets:
+            df = self.called_worksheets[sheet_name]
+        else:
+            df = self.get_database(sheet_name)
+            self.called_worksheets[sheet_name] = df
+        if df is None:
+            return None  # シートが見つからなければNoneを返す
+
+        decorated_df = df.copy()
+        decorated_df['金額'] = df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
+        decorated_df['分類'] = df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
+        decorated_df = decorated_df[['日', '内容', '金額', '分類']]
+        decorated_df = decorated_df.style.apply(self._highlight_rows, axis=1)
+        return decorated_df
 
     def update_categories(self):  # カテゴリーをまとめたエクセルを更新する
         values = [['大分類', 'is_income', '小分類', '候補']]  # エクセルの一行目は各列の説明
@@ -252,6 +265,13 @@ class ExpensesManager(SpreadSheetOperator):
             else:  # 同じ大分類があれば'sub_categories'のdictに小分類と候補を追加
                 categories[main_category]['sub_categories'][sub_category] = candidates
         return categories
+
+    def _highlight_rows(row):
+        if row['金額'][0] == '-':
+            color = 'background-color: #d1ecf1' # 出金は薄い青色
+        else:
+            color = 'background-color: #f8d7da' # 入金は薄い赤色
+        return [color] * len(row)
 
 
 if __name__ == '__main__':
