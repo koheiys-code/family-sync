@@ -255,7 +255,7 @@ class ExpensesManager(SpreadSheetOperator):
                 categories[main_category]['sub_categories'][sub_category] = candidates
         return categories
 
-    def _highlight_rows(row):
+    def _highlight_rows(self, row):
         if row['金額'][0] == '-':
             color = 'background-color: #d1ecf1' # 出金は薄い青色
         else:
