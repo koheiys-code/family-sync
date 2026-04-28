@@ -131,7 +131,7 @@ class ExpensesManager(SpreadSheetOperator):
         decorated_df['金額'] = df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
         decorated_df['分類'] = df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日', '内容', '金額', '分類']]
-        decorated_df = decorated_df.style.apply(self._highlight_rows, axis=1)
+        # decorated_df = decorated_df.style.apply(self._highlight_rows, axis=1)
         return decorated_df
 
     def update_categories(self):  # カテゴリーをまとめたエクセルを更新する
