@@ -119,11 +119,14 @@ class ExpensesManager(SpreadSheetOperator):
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
 
-    def get_database(self, year: int, month: int):  # エクセルから入出金データを取得する
-        sheet_name = str(year) + str(month).rjust(2, '0')  # sheet_nameは202604のように管理されている
+        this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
+        self.this_month_df = self.get_database(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
+        self.called_worksheets = {this_month_sheet_name: self.this_month_df}  # 一度呼び出したワークシートのDataFrameを格納しておく
+
+    def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
         try:
             database_ws = self.database_ss.worksheet(sheet_name)  # なければここでエラーが起こる
-            return pd.DataFrame(database_ws.get_all_records())  # 取得できればDataFrameで返す
+            return pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)  # 取得できればDataFrameで返す
         except gspread.WorksheetNotFound:
             return None  # シートが見つからなければNoneを返す
 
@@ -166,14 +169,13 @@ class ExpensesManager(SpreadSheetOperator):
             ])
         for sheet_name, values in expenses_dic.items():  # シートごとにエクセルをアップデートする
             values = values[::-1]  # 日付を昇順にする
-            try:
-                database_ws = self.database_ss.worksheet(sheet_name)  # シートがなければここでエラー
-                pre_df = pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)
+            pre_df = self.get_database(sheet_name)
+            if pre_df is not None:
                 post_df = pd.DataFrame(values, columns=self.bank_columns)
                 new_df = pd.concat([pre_df, post_df], ignore_index=True)  # 元データと新データを統合
                 new_df = new_df.drop_duplicates(subset=['日', '出金金額', '入金金額','残高'])  # 同じ取引を削除
                 values = [self.bank_columns] + new_df.values.tolist()  # エクセル用に成形
-            except gspread.WorksheetNotFound:
+            else:
                 values = [self.bank_columns] + values
                 self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)  # シートを新規作成
             self.full_update(self.database_ss.worksheet(sheet_name), values)
@@ -194,26 +196,18 @@ class ExpensesManager(SpreadSheetOperator):
 
         # 検索範囲の日付を1日ずつ取得し、デビットカードの履歴と照合する
         min_date, max_date = str(min_date), str(max_date)
-        called_worksheets = {}  # 一度呼び出したワークシートのDataFrameを格納しておく
-        not_found_worksheet = set()  # ワークシートが存在しなかったものはsetで保存しておく
         update_batches = defaultdict(list)  # シートごとにbatchを作成して更新する
         # 検索範囲の日付を1日ずつ取得
         for date in between_days_generator(min_date, max_date, margin=self.debit_gap_days):
             sheet_name = date[:6]
             day = date[6:]
-            if sheet_name in called_worksheets:  # 既に呼び出し済みの場合
-                df = called_worksheets[sheet_name]
-            else:
-                if sheet_name in not_found_worksheet:  # 既に呼び出して見つからなかった場合
-                    continue
-                else:  # それ以外ではワークシートを呼び出す
-                    try:
-                        database_ws = self.database_ss.worksheet(sheet_name)  # 存在しなければここでエラー
-                        df = pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)
-                        called_worksheets[sheet_name] = df
-                    except gspread.WorksheetNotFound:  # 見つからなければ次のループへ
-                        not_found_worksheet.add(sheet_name)
-                        continue
+            if sheet_name in self.called_worksheets:  # 既に呼び出し済みの場合
+                df = self.called_worksheets[sheet_name]
+            else:  # 呼び出していなかったら呼び出してみる
+                df = self.get_database(sheet_name)
+                self.called_worksheets[sheet_name] = df
+            if df is None:  # ワークシートがなければ次のループへ
+                continue
 
             # DataFrameの中で検索日かつデビット履歴ものを呼び出す
             content_col = self.bank_columns.index('内容') + 1  # 内容が何列目に格納されているかを取得（エクセルは1から数える）
@@ -230,6 +224,8 @@ class ExpensesManager(SpreadSheetOperator):
                         content = candidate['content']
                         update_batches[sheet_name].append({'range': content_address, 'values': [[content]]})
                         update_batches[sheet_name].append({'range': is_debit_address, 'values': [['0']]})
+                        df.loc[df_idx, '内容'] = content
+                        df.loc[df_idx, 'is_debit'] = '0'
                         same_withdraw_debit_dict[withdraw].pop(idx)  # マッチしたものは消去する
 
         # シートごとにbatchで更新することで、効率よく、エラーを減らせる

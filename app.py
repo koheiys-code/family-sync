@@ -47,4 +47,4 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    EM.database_ss.worksheet("202604")
+    EM.this_month_df
