@@ -257,9 +257,4 @@ class ExpensesManager(SpreadSheetOperator):
 
 
 if __name__ == '__main__':
-    bank_csv_path = r"/Users/kohei/Downloads/nyushukinmeisai_20260421.csv"
-    new_bank_csv_path = r"/Users/kohei/Downloads/nyushukinmeisai_20260425.csv"
-    debit_csv_path = r"/Users/kohei/Downloads/meisai_20260421200029944.csv"
-
-
-
+    pass

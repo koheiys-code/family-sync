@@ -46,3 +46,5 @@ elif st.session_state['authentication_status']:
     user_name = st.session_state['username']
 
     st.title(':tada: family-sync')
+
+    EM.database_ss.worksheet("202604")
