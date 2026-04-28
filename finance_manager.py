@@ -86,8 +86,9 @@ def between_days_generator(min_date: str, max_date: str, margin=10) -> Iterator[
 class SpreadSheetOperator(object):
     """Goole Spread Sheetを操作するシンプルなクラス"""
 
-    def __init__(self, credentials_path=CREDENTIALS_PATH, scopes=SCOPES) -> None:
-        credentials = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+    def __init__(self, service_account_info, scopes=SCOPES) -> None:
+        credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+        # credentials = Credentials.from_service_account_file(credentials_path, scopes=scopes)
         self.client = gspread.authorize(credentials)
 
     def get_spread_sheet(self, url):
@@ -106,10 +107,9 @@ class SpreadSheetOperator(object):
 class ExpensesManager(SpreadSheetOperator):
     """家計簿を管理するためのクラス"""
 
-    def __init__(self, database_ss_url=DATABASE_SS_URL,
-                 categories_ss_url=CATEGORIES_SS_URL, bank_columns=BANK_COLUMNS,
-                 debit_gap_days=DEBIT_GAP_DAYS):
-        super().__init__()
+    def __init__(self, database_ss_url, categories_ss_url,
+                 bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS, **kwargs):
+        super().__init__(**kwargs)
         self.database_ss = self.get_spread_sheet(database_ss_url)
 
         self.categories_ss = self.get_spread_sheet(categories_ss_url)
@@ -261,7 +261,5 @@ if __name__ == '__main__':
     new_bank_csv_path = r"/Users/kohei/Downloads/nyushukinmeisai_20260425.csv"
     debit_csv_path = r"/Users/kohei/Downloads/meisai_20260421200029944.csv"
 
-    EM = ExpensesManager()
-    EM.load_bank_csv(bank_csv_path)
-    EM.load_bank_csv(new_bank_csv_path)
-    EM.update_debit_contents(debit_csv_path)
+
+

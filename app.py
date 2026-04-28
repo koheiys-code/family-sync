@@ -13,9 +13,15 @@ import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
+from finance_manager import ExpensesManager
 
 CONFIG_YAML_PATH = "config.yaml"
-
+EXPENSES_MANAGER_PARAMS = {
+    'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
+    'categories_ss_url': st.secrets["EXPENSES_SS_URLS"]["CATEGORIES_SS_URL"],
+    'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
+}
+EM = ExpensesManager(**EXPENSES_MANAGER_PARAMS)
 
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
