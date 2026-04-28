@@ -88,7 +88,6 @@ class SpreadSheetOperator(object):
 
     def __init__(self, service_account_info, scopes=SCOPES) -> None:
         credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
-        # credentials = Credentials.from_service_account_file(credentials_path, scopes=scopes)
         self.client = gspread.authorize(credentials)
 
     def get_spread_sheet(self, url):
@@ -253,4 +252,4 @@ class ExpensesManager(SpreadSheetOperator):
 
 
 if __name__ == '__main__':
-    pass
+
