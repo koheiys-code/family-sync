@@ -131,7 +131,7 @@ class ExpensesManager(SpreadSheetOperator):
         decorated_df['金額'] = df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
         decorated_df['分類'] = df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日', '内容', '金額', '分類']]
-        # decorated_df = decorated_df.style.apply(self._highlight_rows, axis=1)
+        decorated_df = decorated_df.style.apply(self._color_text, axis=1)
         return decorated_df
 
     def update_categories(self):  # カテゴリーをまとめたエクセルを更新する
@@ -255,11 +255,11 @@ class ExpensesManager(SpreadSheetOperator):
                 categories[main_category]['sub_categories'][sub_category] = candidates
         return categories
 
-    def _highlight_rows(self, row):
+    def _color_text(self, row):
         if row['金額'][0] == '-':
-            color = 'background-color: #d1ecf1' # 出金は薄い青色
+            color = 'color: #d1ecf1' # 出金は薄い青色
         else:
-            color = 'background-color: #f8d7da' # 入金は薄い赤色
+            color = 'color: #f8d7da' # 入金は薄い赤色
         return [color] * len(row)
 
 
