@@ -15,15 +15,19 @@ import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
-from finance_manager import ExpensesManager
+import finance_manager
 
+START_YEAR = 2026
+START_MONTH = 4
 CONFIG_YAML_PATH = "config.yaml"
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
     'categories_ss_url': st.secrets["EXPENSES_SS_URLS"]["CATEGORIES_SS_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
-EM = ExpensesManager(**EXPENSES_MANAGER_PARAMS)
+EM = finance_manager.ExpensesManager(**EXPENSES_MANAGER_PARAMS)
+START_YEAR = 2026
+START_MONTH = 4
 
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
@@ -49,6 +53,28 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
+    now = datetime.now()
+    now_year, now_month = now.year, now.month
+    repr_name_dict = {}  # '2026年4月': '202604'の形式で保存する
+    if now_year == START_YEAR:
+        for month in range(START_MONTH, now_month+1):
+            repr_name = f'{now_year}年{month}月'
+            sheet_name = finance_manager.get_sheet_name(now_year, month)
+            repr_name_dict[repr_name] = sheet_name
+    else:
+        for year in range(START_YEAR, now.year+1):
+            if year == START_YEAR:
+                min_month, max_month = START_MONTH, 12
+            elif year == now_year:
+                min_month, max_month = 1, now_month
+            else:
+                min_month, max_month = 1, 12
+            for month in range(min_month, max_month+1):
+                repr_name = f'{year}年{month}月'
+                sheet_name = finance_manager.get_sheet_name(year, month)
+                repr_name_dict[repr_name] = sheet_name
+
+    st.selectbox('参照日', repr_name_dict.keys())
     this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
     df = EM.get_decorated_df(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
     st.dataframe(df, hide_index=True)
