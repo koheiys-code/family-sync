@@ -74,7 +74,7 @@ elif st.session_state['authentication_status']:
                 repr_name = f'{year}年{month}月'
                 sheet_name = get_sheet_name(year, month)
                 sheet_name_dict[repr_name] = sheet_name
-
+    st.write(sheet_name_dict)
     repr_name = st.selectbox('', sheet_name_dict.keys())
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
     st.dataframe(df, hide_index=True)
