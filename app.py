@@ -75,7 +75,7 @@ elif st.session_state['authentication_status']:
                 sheet_name = get_sheet_name(year, month)
                 repr_name_dict[repr_name] = sheet_name
 
-    st.selectbox('参照日', repr_name_dict.keys())
+    st.selectbox('', repr_name_dict.keys())
     this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
     df = EM.get_decorated_df(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
     st.dataframe(df, hide_index=True)
