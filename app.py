@@ -19,7 +19,7 @@ import finance_manager
 from finance_manager import get_sheet_name
 
 START_YEAR = 2026
-START_MONTH = 4
+START_MONTH = 3
 CONFIG_YAML_PATH = "config.yaml"
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
@@ -75,6 +75,6 @@ elif st.session_state['authentication_status']:
                 sheet_name = get_sheet_name(year, month)
                 sheet_name_dict[repr_name] = sheet_name
 
-    repr_name = st.selectbox('', sheet_name_dict.keys(), index=-1)
+    repr_name = st.selectbox('', sheet_name_dict.keys())
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
     st.dataframe(df, hide_index=True)
