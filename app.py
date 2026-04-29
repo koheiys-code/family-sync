@@ -16,6 +16,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 import finance_manager
+from finance_manager import get_sheet_name
 
 START_YEAR = 2026
 START_MONTH = 4
@@ -59,7 +60,7 @@ elif st.session_state['authentication_status']:
     if now_year == START_YEAR:
         for month in range(START_MONTH, now_month+1):
             repr_name = f'{now_year}年{month}月'
-            sheet_name = finance_manager.get_sheet_name(now_year, month)
+            sheet_name = get_sheet_name(now_year, month)
             repr_name_dict[repr_name] = sheet_name
     else:
         for year in range(START_YEAR, now.year+1):
@@ -71,7 +72,7 @@ elif st.session_state['authentication_status']:
                 min_month, max_month = 1, 12
             for month in range(min_month, max_month+1):
                 repr_name = f'{year}年{month}月'
-                sheet_name = finance_manager.get_sheet_name(year, month)
+                sheet_name = get_sheet_name(year, month)
                 repr_name_dict[repr_name] = sheet_name
 
     st.selectbox('参照日', repr_name_dict.keys())
