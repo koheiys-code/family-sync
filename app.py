@@ -18,8 +18,7 @@ from yaml.loader import SafeLoader
 import finance_manager
 from finance_manager import get_sheet_name
 
-START_YEAR = 2026
-START_MONTH = 1
+
 CONFIG_YAML_PATH = "config.yaml"
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
@@ -28,7 +27,8 @@ EXPENSES_MANAGER_PARAMS = {
 }
 EM = finance_manager.ExpensesManager(**EXPENSES_MANAGER_PARAMS)
 START_YEAR = 2026
-START_MONTH = 4
+START_MONTH = 1
+
 
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
