@@ -75,6 +75,8 @@ elif st.session_state['authentication_status']:
                 sheet_name = get_sheet_name(year, month)
                 sheet_name_dict[repr_name] = sheet_name
     st.write(sheet_name_dict)
-    repr_name = st.selectbox('', sheet_name_dict.keys())
+    options = sheet_name_dict.keys()
+    default_idx = len(sheet_name_dict) - 1
+    repr_name = st.selectbox('', options, index=default_idx)
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
     st.dataframe(df, hide_index=True)
