@@ -39,16 +39,6 @@ def tune_amount(amount) -> str:
     return '0'
 
 
-def identify_category(content: str, categories: dict, uncategorized='未分類') -> tuple[str, str]:
-    """categoriesを使ってcontentの大分類と小分類を取得する"""
-
-    for main_category, main_info in categories.items():
-        for sub_category, candidates in main_info['sub_categories'].items():
-            if content in candidates:  # candidatesは小区分に該当する項目を含むlist
-                return main_category, sub_category
-    return uncategorized, uncategorized
-
-
 def get_date_gap(date1: str, date2: str) -> int:
     """20260412、20260425といった年月日の文字列の日数差を取得する"""
 
@@ -127,8 +117,8 @@ class ExpensesManager(SpreadSheetOperator):
             return None  # シートが見つからなければNoneを返す
 
         decorated_df = df.copy()
-        decorated_df['金額'] = df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
-        decorated_df['分類'] = df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
+        decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
+        decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日', '内容', '金額', '分類']]
         decorated_df = decorated_df.style.map(lambda x: 'color: #0275d8' if x[0]=='+' else 'color: #d9534f', subset=['金額'])
         return decorated_df
@@ -210,7 +200,9 @@ class ExpensesManager(SpreadSheetOperator):
 
             # DataFrameの中で検索日かつデビット履歴ものを呼び出す
             content_col = self.bank_columns.index('内容') + 1  # 内容が何列目に格納されているかを取得（エクセルは1から数える）
-            is_debit_col = self.bank_columns.index('is_debit') + 1  # 内容が何列目に格納されているかを取得（エクセルは1から数える）
+            is_debit_col = self.bank_columns.index('is_debit') + 1  # is_debitが...
+            main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が...
+            sub_category_col = self.bank_columns.index('小分類') + 1  # 小分類が...
             for df_idx, row in df[(df['日']==day) & (df['is_debit']=='1')].iterrows():
                 excel_idx = df_idx + 2  # dataframeからエクセルで行のカウントが2つズレる
                 withdraw = row['出金金額']
@@ -219,13 +211,20 @@ class ExpensesManager(SpreadSheetOperator):
                     date_gap = get_date_gap(date, candidate_date)  # 日付のgapを計算する
                     if date_gap <= self.debit_gap_days:  # 設定した日数より少なければ更新する
                         content_address = self.get_cell_address(excel_idx, content_col)  # エクセルでの住所を取得（ex. A1）
-                        is_debit_address = self.get_cell_address(excel_idx, is_debit_col)  # エクセルでの住所を取得（ex. A1）
+                        is_debit_address = self.get_cell_address(excel_idx, is_debit_col)
+                        main_category_address = self.get_cell_address(excel_idx, main_category_col)
+                        sub_category_address = self.get_cell_address(excel_idx, sub_category_col)
                         content = candidate['content']
+                        main_category, sub_category = self._identify_category(content)
                         update_batches[sheet_name].append({'range': content_address, 'values': [[content]]})
                         update_batches[sheet_name].append({'range': is_debit_address, 'values': [['0']]})
-                        df.loc[df_idx, '内容'] = content
+                        update_batches[sheet_name].append({'range': main_category_address, 'values': [[main_category]]})
+                        update_batches[sheet_name].append({'range': sub_category_address, 'values': [[sub_category]]})
+                        df.loc[df_idx, '内容'] = content  # dfの内容も変えておく
                         df.loc[df_idx, 'is_debit'] = '0'
-                        same_withdraw_debit_dict[withdraw].pop(idx)  # マッチしたものは消去する
+                        df.loc[df_idx, '大分類'] = main_category
+                        df.loc[df_idx, '小分類'] = sub_category
+                        same_withdraw_debit_dict[withdraw].pop(idx)  # マッチしたものは候補から消去する
 
         # シートごとにbatchで更新することで、効率よく、エラーを減らせる
         for sheet_name, update_batch in update_batches.items():
@@ -249,6 +248,15 @@ class ExpensesManager(SpreadSheetOperator):
             else:  # 同じ大分類があれば'sub_categories'のdictに小分類と候補を追加
                 categories[main_category]['sub_categories'][sub_category] = candidates
         return categories
+
+    def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:
+        """categoriesを使ってcontentの大分類と小分類を取得する"""
+
+        for main_category, main_info in self.categories.items():
+            for sub_category, candidates in main_info['sub_categories'].items():
+                if content in candidates:  # candidatesは小区分に該当する項目を含むlist
+                    return main_category, sub_category
+        return uncategorized, uncategorized
 
 
 if __name__ == '__main__':
