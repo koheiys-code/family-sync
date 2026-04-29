@@ -78,4 +78,7 @@ elif st.session_state['authentication_status']:
     default_idx = len(sheet_name_dict) - 1
     repr_name = st.selectbox('', options, index=default_idx)
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
-    st.dataframe(df, hide_index=True)
+    if df is not None:
+        st.dataframe(df, hide_index=True)
+    else:
+        st.write('入出金データがありません。')
