@@ -121,6 +121,7 @@ class ExpensesManager(SpreadSheetOperator):
             return None  # シートが見つからなければNoneを返す
 
         decorated_df = df.copy()
+        decorated_df['日'] = decorated_df['日'].atype(int)
         decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日', '内容', '金額', '分類']]

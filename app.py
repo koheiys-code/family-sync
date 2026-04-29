@@ -56,12 +56,12 @@ elif st.session_state['authentication_status']:
 
     now = datetime.now()
     now_year, now_month = now.year, now.month
-    repr_name_dict = {}  # '2026年4月': '202604'の形式で保存する
+    sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
     if now_year == START_YEAR:
         for month in range(START_MONTH, now_month+1):
             repr_name = f'{now_year}年{month}月'
             sheet_name = get_sheet_name(now_year, month)
-            repr_name_dict[repr_name] = sheet_name
+            sheet_name_dict[repr_name] = sheet_name
     else:
         for year in range(START_YEAR, now.year+1):
             if year == START_YEAR:
@@ -73,9 +73,8 @@ elif st.session_state['authentication_status']:
             for month in range(min_month, max_month+1):
                 repr_name = f'{year}年{month}月'
                 sheet_name = get_sheet_name(year, month)
-                repr_name_dict[repr_name] = sheet_name
+                sheet_name_dict[repr_name] = sheet_name
 
-    st.selectbox('', repr_name_dict.keys())
-    this_month_sheet_name = datetime.strftime(datetime.now(), '%Y%m')  # 202604の形式で取得
-    df = EM.get_decorated_df(this_month_sheet_name)  # サイトを開いた年月のデータを呼び出しておく
+    repr_name = st.selectbox('', sheet_name_dict.keys(), )
+    df = EM.get_decorated_df(sheet_name_dict[repr_name])
     st.dataframe(df, hide_index=True)
