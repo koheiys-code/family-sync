@@ -74,7 +74,6 @@ elif st.session_state['authentication_status']:
                 repr_name = f'{year}年{month}月'
                 sheet_name = get_sheet_name(year, month)
                 sheet_name_dict[repr_name] = sheet_name
-    st.write(sheet_name_dict)
     options = sheet_name_dict.keys()
     default_idx = len(sheet_name_dict) - 1
     repr_name = st.selectbox('', options, index=default_idx)
