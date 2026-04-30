@@ -101,14 +101,15 @@ class SpreadSheetOperator(object):
 class ExpensesManager(SpreadSheetOperator):
     """家計簿を管理するためのクラス"""
 
-    def __init__(self, database_ss_url, categories_ss_url,
+    def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
                  bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS, **kwargs):
         super().__init__(**kwargs)
         self.database_ss = self.get_spread_sheet(database_ss_url)
-
-        self.categories_ss = self.get_spread_sheet(categories_ss_url)
-        self.categories_ws = self.categories_ss.sheet1
-        self.categories = self._get_categories()
+        self.income_categories_ss = self.get_spread_sheet(income_categories_url)
+        self.cost_categories_ss = self.get_spread_sheet(cost_categories_url)
+        self.income_categories = self._get_categories(self.income_categories_ss)
+        self.cost_categories = self._get_categories(self.cost_categories_ss)
+        self.categories = dict(**self.income_categories, **self.cost_categories)
 
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
@@ -127,13 +128,6 @@ class ExpensesManager(SpreadSheetOperator):
             self.called_worksheets[sheet_name] = df
             return df
 
-    def update_categories(self):  # カテゴリーをまとめたエクセルを更新する
-        values = [['大分類', 'is_income', '小分類', '候補']]  # エクセルの一行目は各列の説明
-        for main_category, main_info in self.categories.items():
-            temp_value = [main_category, main_info['is_income']]  # 大項目とis_incomeは固定
-            for sub_category, candidates in main_info['sub_categories'].items():
-                values.append(temp_value + [sub_category] + candidates)  # 小項目ごとに行を追加
-        self.full_update(self.categories_ws, values)  # valuesの内容でエクセルをアップデート
 
     def load_bank_csv(self, csv_file):  # 銀行の入出金データでエクセルを更新する
         bank_df = pd.read_csv(csv_file, encoding='shift-jis', dtype=str).fillna(0)
@@ -234,32 +228,51 @@ class ExpensesManager(SpreadSheetOperator):
         for sheet_name, update_batch in update_batches.items():
             self.database_ss.worksheet(sheet_name).batch_update(update_batch)
 
-    def _get_categories(self) -> dict:  # エクセルからdictに成形して返す
-        categories = {}
-        all_values = self.categories_ws.get_all_values()  # エクセルの全てのセルを取得
-        for row_values in all_values[1:]:  # 一行目は各列の説明なので飛ばす
-            main_category = row_values[0]  # 大分類を取得
-            is_income = row_values[1]  # '0'か'1'で入金の項目か否かを判定する
-            sub_category = row_values[2]  # 小分類
-            candidates = []  # 以降、任意の列に続く候補を取得し、listにする
-            for candidate in row_values[3:]:
-                if candidate:  # 候補があればリストに追加
+
+    def update_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
+        items = [(self.cost_categories, self.cost_categories_ss),
+                 (self.income_categories, self.income_categories_ss)]
+        for categories, spread_sheet in items:
+            first_column = np.array([['大分類', '小分類', '候補']]).T.tolist()
+            batch = [{'range': 'A1:A3', 'values': first_column}]
+            col = 2
+            for main, sub_categories in categories.items():
+                for sub, candidates in sub_categories.items():
+                    values = [main, sub] + candidates
+                    values = np.array([values]).T.tolist()
+                    start_address = self.get_cell_address(1, col)
+                    end_address = self.get_cell_address(len(values), col)
+                    range_ = f'{start_address}:{end_address}'
+                    batch.append({'range': range_, 'values': values})
+                    col += 1
+            ws = getattr(spread_sheet, sheet_name)
+            ws.clear()
+            ws.batch_update(batch)
+
+
+    def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
+        categories = defaultdict(dict)
+        work_sheet = getattr(spread_sheet, sheet_name)
+        all_values = work_sheet.get_all_values()  # エクセルの全てのセルを取得
+        for row in np.array(all_values).T[1:]:
+            main = row[0]
+            sub = row[1]
+            candidates = []
+            for candidate in row[2:]:
+                if candidate:
                     candidates.append(candidate)
-                else:  # 候補がなければループを抜ける
+                else:
                     break
-            if main_category not in categories:  # 同じ大分類がなければdictに追加
-                categories[main_category] = {'is_income': is_income, 'sub_categories': {sub_category: candidates}}
-            else:  # 同じ大分類があれば'sub_categories'のdictに小分類と候補を追加
-                categories[main_category]['sub_categories'][sub_category] = candidates
+            categories[main][sub] = candidates
         return categories
+
 
     def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:
         """categoriesを使ってcontentの大分類と小分類を取得する"""
-
-        for main_category, main_info in self.categories.items():
-            for sub_category, candidates in main_info['sub_categories'].items():
-                if content in candidates:  # candidatesは小区分に該当する項目を含むlist
-                    return main_category, sub_category
+        for main, sub_categories in self.categories.items():
+            for sub, candidates in sub_categories.items():
+                if content in candidates:
+                    return main, sub
         return uncategorized, uncategorized
 
 

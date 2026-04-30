@@ -22,7 +22,8 @@ from finance_manager import decorate_df, get_sheet_name
 CONFIG_YAML_PATH = "config.yaml"
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
-    'categories_ss_url': st.secrets["EXPENSES_SS_URLS"]["CATEGORIES_SS_URL"],
+    'income_categories_url': st.secrets["EXPENSES_SS_URLS"]["INCOME_CATEGORIES_URL"],
+    'cost_categories_url': st.secrets["EXPENSES_SS_URLS"]["COST_CATEGORIES_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
 EM = finance_manager.ExpensesManager(**EXPENSES_MANAGER_PARAMS)
