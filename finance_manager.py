@@ -66,14 +66,15 @@ def between_days_generator(min_date: str, max_date: str, margin=10) -> Iterator[
         yield datetime.strftime(date, '%Y%m%d')
 
 
-def decorate_df(df):  # 見やすいデータフレームを取得する
+def decorate_df(df, color=True):  # 見やすいデータフレームを取得する
     decorated_df = df.copy()
     decorated_df['日'] = decorated_df['日'].astype(int)
     decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
     decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
     decorated_df = decorated_df[['日', '内容', '金額', '分類']]
     decorated_df = decorated_df.iloc[::-1, :]
-    decorated_df = decorated_df.style.map(lambda x: 'color: #0275d8' if x[0]=='+' else 'color: #d9534f', subset=['金額'])
+    if color:
+        decorated_df = decorated_df.style.map(lambda x: 'color: #0275d8' if x[0]=='+' else 'color: #d9534f', subset=['金額'])
     return decorated_df
 
 
