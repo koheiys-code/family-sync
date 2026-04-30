@@ -80,6 +80,7 @@ elif st.session_state['authentication_status']:
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
     if df is not None:
         # st.dataframe(df, hide_index=True)
+        df['編集'] = False
         st.data_editor(df)
     else:
         st.write('入出金データがありません。')
