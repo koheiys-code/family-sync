@@ -82,10 +82,10 @@ elif st.session_state['authentication_status']:
     if df is not None:
         edit_mode = st.toggle("分類編集")
         if not edit_mode:
-            decorated_df = decorate_df(df)
+            decorated_df = decorate_df(df, color=True)
             st.dataframe(decorated_df, hide_index=True)
         else:
-            editable_df = df.copy()
+            editable_df = decorate_df(df, color=False)
             editable_df['編集'] = False
             st.data_editor(editable_df, hide_index=True)
     else:
