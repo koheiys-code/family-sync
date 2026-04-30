@@ -77,7 +77,8 @@ elif st.session_state['authentication_status']:
     options = sheet_name_dict.keys()
     default_idx = len(sheet_name_dict) - 1
     repr_name = st.selectbox('', options, index=default_idx)
-    df = EM.get_decorated_df(sheet_name_dict[repr_name])
+    df = EM.get_database(sheet_name_dict[repr_name])
+    decorated_df = EM.get_decorated_df(df)
     if df is not None:
         # st.dataframe(df, hide_index=True)
         df['編集'] = False
