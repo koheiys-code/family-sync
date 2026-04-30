@@ -86,7 +86,8 @@ elif st.session_state['authentication_status']:
             st.dataframe(decorated_df, hide_index=True)
         else:
             editable_df = decorate_df(df, color=False)
+            disabled = editable_df.keys()
             editable_df['編集'] = False
-            st.data_editor(editable_df, hide_index=True)
+            st.data_editor(editable_df, disabled=disabled, hide_index=True)
     else:
         st.write('入出金データがありません。')
