@@ -79,6 +79,7 @@ elif st.session_state['authentication_status']:
     repr_name = st.selectbox('', options, index=default_idx)
     df = EM.get_decorated_df(sheet_name_dict[repr_name])
     if df is not None:
-        st.dataframe(df, hide_index=True)
+        # st.dataframe(df, hide_index=True)
+        st.data_editor(df)
     else:
         st.write('入出金データがありません。')
