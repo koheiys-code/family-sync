@@ -16,7 +16,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 import finance_manager
-from finance_manager import get_sheet_name
+from finance_manager import decorate_df, get_sheet_name
 
 
 CONFIG_YAML_PATH = "config.yaml"
@@ -82,7 +82,7 @@ elif st.session_state['authentication_status']:
     if df is not None:
         edit_mode = st.toggle("分類編集")
         if not edit_mode:
-            decorated_df = EM.decorate_df(df)
+            decorated_df = decorate_df(df)
             st.dataframe(decorated_df, hide_index=True)
         else:
             editable_df = df.copy()
