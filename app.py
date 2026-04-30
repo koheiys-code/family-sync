@@ -78,10 +78,15 @@ elif st.session_state['authentication_status']:
     default_idx = len(sheet_name_dict) - 1
     repr_name = st.selectbox('', options, index=default_idx)
     df = EM.get_database(sheet_name_dict[repr_name])
-    decorated_df = EM.get_decorated_df(df)
+
     if df is not None:
-        # st.dataframe(df, hide_index=True)
-        df['編集'] = False
-        st.data_editor(df)
+        edit_mode = st.toggle("分類編集")
+        if not edit_mode:
+            decorated_df = EM.decorate_df(df)
+            st.dataframe(decorated_df, hide_index=True)
+        else:
+            editable_df = df.copy()
+            editable_df['編集'] = False
+            st.data_editor(editable_df, hide_index=True)
     else:
         st.write('入出金データがありません。')

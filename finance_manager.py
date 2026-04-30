@@ -115,7 +115,7 @@ class ExpensesManager(SpreadSheetOperator):
             self.called_worksheets[sheet_name] = df
             return df
 
-    def get_decorated_df(self, df):  # 見やすいデータフレームを取得する
+    def decorate_df(self, df):  # 見やすいデータフレームを取得する
         if df is None:
             return None  # シートが見つからなければNoneを返す
 
