@@ -110,7 +110,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.income_categories = self._get_categories(self.income_categories_ss)
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         self.categories = dict(**self.income_categories, **self.cost_categories)
-        self.categories_list = self._get_categories_list
+        self.categories_list = self._get_categories_list()
 
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
