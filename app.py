@@ -41,6 +41,7 @@ def apply_edits(expense_manager, edited_df):
     st.dataframe(edited_rows)
     st.write(expense_manager.categories_list)
 
+
 EM = get_expenses_manager()
 
 
@@ -69,7 +70,7 @@ elif st.session_state['authentication_status']:
     st.title(':tada: family-sync')
 
 
-    st.write(EM.categories_list)
+    st.write(EM._get_categories_list())
 
 
     now = datetime.now()
