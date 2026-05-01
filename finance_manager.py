@@ -110,7 +110,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.income_categories = self._get_categories(self.income_categories_ss)
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         self.categories = dict(**self.income_categories, **self.cost_categories)
-        self.categories_list = self._get_categories_list()
+        self.categories_dict = self._get_categories_dict()
 
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
@@ -147,7 +147,7 @@ class ExpensesManager(SpreadSheetOperator):
                 is_debit = '1'  # デビットカードの明細はマーキング
             elif content[:6] == 'ポイント利用':
                 content = 'ポイント利用'  # 'ポイント利用 (数字)'の表示を'ポイント利用'に統一
-            main_category, sub_category = identify_category(content, self.categories)
+            main_category, sub_category = self._identify_category(content)
 
             expenses_dic[sheet_name].append([
                 day,  # 日
@@ -268,15 +268,16 @@ class ExpensesManager(SpreadSheetOperator):
         return categories
 
 
-    def _get_categories_list(self):
-        categories_list = []
+    def _get_categories_dict(self):
+        categories_dict = {}
         for main, sub_categories in self.categories.items():
             for sub in sub_categories.keys():
                 if main == sub:
-                    categories_list.append(main)
+                    key = main
                 else:
-                    categories_list.append(f'{main}/{sub}')
-        return categories_list
+                    key = f'{main}/{sub}'
+                categories_dict[key] = {'main': main, 'sub': sub}
+        return categories_dict
 
 
     def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:
