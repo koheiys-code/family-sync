@@ -110,6 +110,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.income_categories = self._get_categories(self.income_categories_ss)
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         self.categories = dict(**self.income_categories, **self.cost_categories)
+        self.categories_list = self._get_categories_list
 
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
@@ -265,6 +266,17 @@ class ExpensesManager(SpreadSheetOperator):
                     break
             categories[main][sub] = candidates
         return categories
+
+
+    def _get_categories_list(self):
+        categories_list = []
+        for main, sub_categories in self.categories.items():
+            for sub in sub_categories.keys():
+                if main == sub:
+                    categories_list.append(main)
+                else:
+                    categories_list.append(f'{main}/{sub}')
+        return categories_list
 
 
     def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:

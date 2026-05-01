@@ -36,8 +36,10 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 
 
 @st.dialog("分類編集")
-def apply_edits(edited_df):
-    st.dataframe(edited_df[edited_df['編集']==True])
+def apply_edits(expense_manager, edited_df):
+    edited_rows = edited_df[edited_df['編集']==True]
+    st.dataframe(edited_rows)
+    st.write(expense_manager.categories_list)
 
 EM = get_expenses_manager()
 
@@ -103,6 +105,6 @@ elif st.session_state['authentication_status']:
             editable_df['編集'] = False
             edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
             if st.button('編集'):
-                apply_edits(edited_df)
+                apply_edits(EM, edited_df)
     else:
         st.write('入出金データがありません。')
