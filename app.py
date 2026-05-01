@@ -68,6 +68,10 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
+
+    st.write(EM.categories_list)
+
+
     now = datetime.now()
     now_year, now_month = now.year, now.month
     sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
