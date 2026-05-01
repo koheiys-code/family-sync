@@ -26,9 +26,16 @@ EXPENSES_MANAGER_PARAMS = {
     'cost_categories_url': st.secrets["EXPENSES_SS_URLS"]["COST_CATEGORIES_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
-EM = finance_manager.ExpensesManager(**EXPENSES_MANAGER_PARAMS)
 START_YEAR = 2026
 START_MONTH = 1
+
+
+@st.cache_resource
+def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
+    return finance_manager.ExpensesManager(**params)
+
+
+EM = get_expenses_manager()
 
 
 # ユーザー設定の読み込み
