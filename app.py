@@ -37,6 +37,7 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 
 @st.dialog("分類編集")
 def edit(editable_df):
+    st.dataframe(editable_df)
     edit_df = editable_df[editable_df['編集']==True]
     st.dataframe(edit_df)
 
