@@ -92,12 +92,13 @@ elif st.session_state['authentication_status']:
     df = EM.get_database(sheet_name_dict[repr_name])
 
     if df is not None:
-        edit_mode = st.toggle("分類編集")
+        edit_mode = st.toggle("分類編集", )
         if not edit_mode:
             decorated_df = decorate_df(df, color=True)
             st.dataframe(decorated_df, hide_index=True)
         else:
-            st.button('編集', on_click=edit())
+            if st.button('編集'):
+                edit()
             editable_df = decorate_df(df, color=False)
             disabled = editable_df.keys()
             editable_df['編集'] = False
