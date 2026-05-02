@@ -40,13 +40,13 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_mode):
     options = expense_manager.repr_category_dict.keys()
     repr_category = st.selectbox('', options)
     edited_rows = edited_df[edited_df['編集']==True]
-    st.dataframe(edited_rows)
+    st.dataframe(edited_rows, hide_index=True)
     category_info = expense_manager.repr_category_dict[repr_category]
     main, sub = category_info['main'], category_info['sub']
     st.write(f'分類を{repr_category}に変更しますか？')
     confirmed = st.button('確定')
     if confirmed:
-        edit_mode = Fale
+        edit_mode = False
 
 
 EM = get_expenses_manager()
