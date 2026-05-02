@@ -103,8 +103,19 @@ class ExpensesManager(SpreadSheetOperator):
 
     def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
                  bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS, **kwargs):
+        # 親クラスの初期化
         super().__init__(**kwargs)
-        # スプレッドシートを開いておく
+
+        # まずは必要なdictionary等を定義しておく
+        self.income_categories = {}
+        self.cost_categories = {}
+        self.categories = {}
+        self.repr_category_dict = {}
+        self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameをいれる
+        self.bank_columns = bank_columns
+        self.debit_gap_days = debit_gap_days
+
+        # スプレッドシートを開く
         self.database_ss = self.get_spread_sheet(database_ss_url)
         self.income_categories_ss = self.get_spread_sheet(income_categories_url)
         self.cost_categories_ss = self.get_spread_sheet(cost_categories_url)
@@ -114,11 +125,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         # 統合されたカテゴリデータを作成
         self.categories = dict(**self.income_categories, **self.cost_categories)
-        self.categories_dict = self._get_categories_dict()
-
-        self.bank_columns = bank_columns
-        self.debit_gap_days = debit_gap_days
-        self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameを格納しておく
+        self.repr_category_dict = self._get_repr_category_dict()
 
     def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
         if sheet_name in self.called_worksheets:
@@ -272,16 +279,16 @@ class ExpensesManager(SpreadSheetOperator):
         return categories
 
 
-    def _get_categories_dict(self):
-        categories_dict = {}
+    def _get_repr_category_dict(self):
+        repr_category_dict = {}
         for main, sub_categories in self.categories.items():
             for sub in sub_categories.keys():
                 if main == sub:
                     key = main
                 else:
                     key = f'{main}/{sub}'
-                categories_dict[key] = {'main': main, 'sub': sub}
-        return categories_dict
+                repr_category_dict[key] = {'main': main, 'sub': sub}
+        return repr_category_dict
 
 
     def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:
