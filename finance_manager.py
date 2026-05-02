@@ -26,6 +26,7 @@ SCOPES = [
 ]
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
 DEBIT_GAP_DAYS = 10
+UNCATEGORIZED = '未分類'
 
 
 def get_sheet_name(year: int, month: int) -> str:
@@ -102,7 +103,8 @@ class ExpensesManager(SpreadSheetOperator):
     """家計簿を管理するためのクラス"""
 
     def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
-                 bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS, **kwargs):
+                 bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS,
+                 uncategorized=UNCATEGORIZED, **kwargs):
         # 親クラスの初期化
         super().__init__(**kwargs)
 
@@ -114,6 +116,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameをいれる
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
+        self.uncategorized = uncategorized
 
         # スプレッドシートを開く
         self.database_ss = self.get_spread_sheet(database_ss_url)
@@ -124,7 +127,7 @@ class ExpensesManager(SpreadSheetOperator):
         self.income_categories = self._get_categories(self.income_categories_ss)
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         # 統合されたカテゴリデータを作成
-        self.categories = dict(**self.income_categories, **self.cost_categories)
+        self.categories = self._integrate_categories()
         self.repr_category_dict = self._get_repr_category_dict()
 
     def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
@@ -245,13 +248,26 @@ class ExpensesManager(SpreadSheetOperator):
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
         sub_category_col = self.bank_columns.index('小分類') + 1
         for index in indexes:
+            index += 2  # エクセルは1スタートで、1行目は説明があるため2行ズレる
             main_address = self.get_cell_address(index, main_category_col)
             sub_address = self.get_cell_address(index, sub_category_col)
             batch.append({'range': main_address, 'values': [[main]]})
             batch.append({'range': sub_address, 'values': [[sub]]})
-            # df.loc[index, '大分類'] = main
-        #     # df.loc[index, '小分類'] = sub
-        # self.database_ss.worksheet(sheet_name).batch_update(batch)
+            df.loc[index, '大分類'] = main
+            df.loc[index, '小分類'] = sub
+
+            # 既存のカテゴリを更新する
+            content = df.loc[index, '内容']
+            if df.loc[index, '出金金額'] == '0':
+                current_categories = self.income_categories
+            else:
+                current_categories = self.cost_categories
+            pre_main ,pre_sub = self._identify_category(content)
+            if pre_main != self.uncategorized:
+                current_categories[pre_main][pre_sub].remove(content)
+            current_categories[main][sub] = content
+        self.categories = self._integrate_categories()
+        self.database_ss.worksheet(sheet_name).batch_update(batch)
         return batch
 
     def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
@@ -303,14 +319,17 @@ class ExpensesManager(SpreadSheetOperator):
                 repr_category_dict[key] = {'main': main, 'sub': sub}
         return repr_category_dict
 
+    def _integrate_categories(self):
+        return dict(**self.income_categories, **self.cost_categories)
 
-    def _identify_category(self, content: str, uncategorized='未分類') -> tuple[str, str]:
+
+    def _identify_category(self, content: str) -> tuple[str, str]:
         """categoriesを使ってcontentの大分類と小分類を取得する"""
         for main, sub_categories in self.categories.items():
             for sub, candidates in sub_categories.items():
                 if content in candidates:
                     return main, sub
-        return uncategorized, uncategorized
+        return self.uncategorized, self.uncategorized
 
 
 if __name__ == '__main__':
