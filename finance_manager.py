@@ -241,7 +241,6 @@ class ExpensesManager(SpreadSheetOperator):
 
     def update_categories(self, sheet_name, indexes, main ,sub):
         df = self.get_database(sheet_name)
-        return df
         batch = []
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
         sub_category_col = self.bank_columns.index('小分類') + 1
@@ -250,9 +249,10 @@ class ExpensesManager(SpreadSheetOperator):
             sub_address = self.get_cell_address(index, sub_category_col)
             batch.append({'range': main_address, 'values': [[main]]})
             batch.append({'range': sub_address, 'values': [[sub]]})
-            df.loc[index, '大分類'] = main
-            df.loc[index, '小分類'] = sub
-        self.database_ss.worksheet(sheet_name).batch_update(batch)
+            # df.loc[index, '大分類'] = main
+        #     # df.loc[index, '小分類'] = sub
+        # self.database_ss.worksheet(sheet_name).batch_update(batch)
+        return batch
 
     def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
         items = [(self.cost_categories, self.cost_categories_ss),
