@@ -44,7 +44,7 @@ def apply_edits(expense_manager, edited_df):
     category_info = expense_manager.repr_category_dict[repr_category]
     main, sub = category_info['main'], category_info['sub']
     st.write(repr_category, main, sub)
-    st.write(edited_rows.index())
+    st.write(edited_rows.index)
 
 
 EM = get_expenses_manager()
