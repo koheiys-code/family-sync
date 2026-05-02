@@ -45,10 +45,8 @@ def apply_edits(expense_manager, sheet_name, edited_df):
     main, sub = category_info['main'], category_info['sub']
     st.write(f'分類を{repr_category}に変更しますか？')
     confirmed = st.button('確定')
-    st.write(sheet_name)
     if confirmed:
-        a = expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
-        st.write(a)
+        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
         st.session_state.show_dialog = False
         st.rerun()
 
@@ -103,7 +101,8 @@ elif st.session_state['authentication_status']:
     options = sheet_name_dict.keys()
     default_idx = len(sheet_name_dict) - 1
     repr_name = st.selectbox('', options, index=default_idx)
-    df = EM.get_database(sheet_name_dict[repr_name])
+    sheet_name = sheet_name_dict[repr_name]
+    df = EM.get_database(sheet_name)
 
     if df is not None:
         edit_mode = st.toggle("分類編集", )

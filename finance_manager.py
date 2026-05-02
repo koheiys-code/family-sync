@@ -268,7 +268,6 @@ class ExpensesManager(SpreadSheetOperator):
             current_categories[main][sub] = content
         self.categories = self._integrate_categories()
         self.database_ss.worksheet(sheet_name).batch_update(batch)
-        return batch
 
     def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
         items = [(self.cost_categories, self.cost_categories_ss),
