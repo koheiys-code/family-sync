@@ -104,17 +104,20 @@ class ExpensesManager(SpreadSheetOperator):
     def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
                  bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS, **kwargs):
         super().__init__(**kwargs)
+        # スプレッドシートを開いておく
         self.database_ss = self.get_spread_sheet(database_ss_url)
         self.income_categories_ss = self.get_spread_sheet(income_categories_url)
         self.cost_categories_ss = self.get_spread_sheet(cost_categories_url)
+
+        # カテゴリーデータを取得
         self.income_categories = self._get_categories(self.income_categories_ss)
         self.cost_categories = self._get_categories(self.cost_categories_ss)
+        # 統合されたカテゴリデータを作成
         self.categories = dict(**self.income_categories, **self.cost_categories)
         self.categories_dict = self._get_categories_dict()
 
         self.bank_columns = bank_columns
         self.debit_gap_days = debit_gap_days
-
         self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameを格納しておく
 
     def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
@@ -253,7 +256,8 @@ class ExpensesManager(SpreadSheetOperator):
 
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
-        work_sheet = getattr(spread_sheet, sheet_name)
+        # work_sheet = getattr(spread_sheet, sheet_name)
+        work_sheet = spread_sheet.worksheet(sheet_name)
         all_values = work_sheet.get_all_values()  # エクセルの全てのセルを取得
         for row in np.array(all_values).T[1:]:
             main = row[0]
