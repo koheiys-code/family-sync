@@ -239,8 +239,21 @@ class ExpensesManager(SpreadSheetOperator):
         for sheet_name, update_batch in update_batches.items():
             self.database_ss.worksheet(sheet_name).batch_update(update_batch)
 
+    def update_categories(self, sheet_name, indexes, main ,sub):
+        df = self.get_database(sheet_name)
+        batch = []
+        main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
+        sub_category_col = self.bank_columns.index('小分類') + 1
+        for index in indexes:
+            main_address = self.get_cell_address(index, main_category_col)
+            sub_address = self.get_cell_address(index, sub_category_col)
+            batch.append({'range': main_address, 'values': [[main]]})
+            batch.append({'range': sub_address, 'values': [[sub]]})
+            df.loc[index, '大分類'] = main
+            df.loc[index, '小分類'] = sub
+        self.database_ss.worksheet(sheet_name).batch_update(batch)
 
-    def update_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
+    def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
         items = [(self.cost_categories, self.cost_categories_ss),
                  (self.income_categories, self.income_categories_ss)]
         for categories, spread_sheet in items:
