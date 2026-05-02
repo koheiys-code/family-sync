@@ -248,9 +248,9 @@ class ExpensesManager(SpreadSheetOperator):
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
         sub_category_col = self.bank_columns.index('小分類') + 1
         for index in indexes:
-            index += 2  # エクセルは1スタートで、1行目は説明があるため2行ズレる
-            main_address = self.get_cell_address(index, main_category_col)
-            sub_address = self.get_cell_address(index, sub_category_col)
+            excel_row = index + 2  # エクセルは1スタートで、1行目は説明があるため2行ズレる
+            main_address = self.get_cell_address(excel_row, main_category_col)
+            sub_address = self.get_cell_address(excel_row, sub_category_col)
             batch.append({'range': main_address, 'values': [[main]]})
             batch.append({'range': sub_address, 'values': [[sub]]})
             df.loc[index, '大分類'] = main
@@ -265,7 +265,7 @@ class ExpensesManager(SpreadSheetOperator):
             pre_main ,pre_sub = self._identify_category(content)
             if pre_main != self.uncategorized:
                 current_categories[pre_main][pre_sub].remove(content)
-            current_categories[main][sub] = content
+            current_categories[main][sub].append(content)
         self.categories = self._integrate_categories()
         self.database_ss.worksheet(sheet_name).batch_update(batch)
 
