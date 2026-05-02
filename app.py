@@ -39,7 +39,11 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 def apply_edits(expense_manager, edited_df):
     edited_rows = edited_df[edited_df['編集']==True]
     st.dataframe(edited_rows)
-    categories = st.selectbox('', expense_manager.repr_category_dict)
+    options = expense_manager.repr_category_dict.keys()
+    repr_category = st.selectbox('', options)
+    category_info = expense_manager.repr_category_dict[repr_category]
+    main, sub = category_info['main'], category_info['sub']
+    st.write(repr_category, main, sub)
 
 
 EM = get_expenses_manager()
@@ -68,8 +72,6 @@ elif st.session_state['authentication_status']:
     user_name = st.session_state['username']
 
     st.title(':tada: family-sync')
-
-    EM.repr_category_dict
 
     now = datetime.now()
     now_year, now_month = now.year, now.month
