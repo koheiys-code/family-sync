@@ -35,7 +35,7 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
     return finance_manager.ExpensesManager(**params)
 
 
-@st.dialog("分類編集")
+@st.dialog('')
 def apply_edits(expense_manager, sheet_name, edited_df, edit_mode):
     options = expense_manager.repr_category_dict.keys()
     repr_category = st.selectbox('', options)
@@ -47,6 +47,7 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_mode):
     confirmed = st.button('確定')
     if confirmed:
         edit_mode = False
+        st.write('fjdiao')
 
 
 EM = get_expenses_manager()
