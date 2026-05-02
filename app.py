@@ -36,7 +36,7 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 
 
 @st.dialog('編集')
-def apply_edits(expense_manager, sheet_name, edited_df, edit_mode):
+def apply_edits(expense_manager, sheet_name, edited_df):
     options = expense_manager.repr_category_dict.keys()
     repr_category = st.selectbox('', options)
     edited_rows = edited_df[edited_df['編集']==True]
@@ -46,8 +46,8 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_mode):
     st.write(f'分類を{repr_category}に変更しますか？')
     confirmed = st.button('確定')
     if confirmed:
-        edit_mode = False
-        st.write('fjdiao')
+        st.session_state.show_dialog = False
+        st.rerun()
 
 
 EM = get_expenses_manager()
@@ -113,6 +113,6 @@ elif st.session_state['authentication_status']:
             editable_df['編集'] = False
             edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
             if st.button('編集'):
-                apply_edits(EM, sheet_name, edited_df, edit_mode)
+                apply_edits(EM, sheet_name, edited_df)
     else:
         st.write('入出金データがありません。')
