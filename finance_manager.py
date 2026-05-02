@@ -263,8 +263,7 @@ class ExpensesManager(SpreadSheetOperator):
 
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
-        # work_sheet = getattr(spread_sheet, sheet_name)
-        work_sheet = spread_sheet.worksheet(sheet_name)
+        work_sheet = getattr(spread_sheet, sheet_name)
         all_values = work_sheet.get_all_values()  # エクセルの全てのセルを取得
         for row in np.array(all_values).T[1:]:
             main = row[0]
