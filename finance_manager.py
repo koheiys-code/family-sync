@@ -241,6 +241,7 @@ class ExpensesManager(SpreadSheetOperator):
 
     def update_categories(self, sheet_name, indexes, main ,sub):
         df = self.get_database(sheet_name)
+        return df
         batch = []
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
         sub_category_col = self.bank_columns.index('小分類') + 1

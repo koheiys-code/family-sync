@@ -46,9 +46,10 @@ def apply_edits(expense_manager, sheet_name, edited_df):
     st.write(f'分類を{repr_category}に変更しますか？')
     confirmed = st.button('確定')
     if confirmed:
-        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
-        st.session_state.show_dialog = False
-        st.rerun()
+        a = expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
+        st.write(a)
+        # st.session_state.show_dialog = False
+        # st.rerun()
 
 
 EM = get_expenses_manager()
