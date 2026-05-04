@@ -121,8 +121,8 @@ elif st.session_state['authentication_status']:
     else:
         st.write('入出金データがありません。')
 
-    with st.form('利用履歴をアップロード', clear_on_submit=True):
-        files = st.file_uploader('', type="csv", accept_multiple_files=True)
+    with st.form('利用履歴更新フォーム', clear_on_submit=True):
+        files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
         if st.form_submit_button('実行'):
             for file in files:
                 identifier = file.name.split('_')[0]
