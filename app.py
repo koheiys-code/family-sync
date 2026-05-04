@@ -27,7 +27,7 @@ EXPENSES_MANAGER_PARAMS = {
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
 START_YEAR = 2026
-START_MONTH = 1
+START_MONTH = 4
 
 
 @st.cache_resource
@@ -132,4 +132,4 @@ elif st.session_state['authentication_status']:
                     EM.update_debit_contents(file)
                 else:
                     st.write(f'読み込めませんでした。 {file.name}')
-            # st.rerun()
+            st.rerun()
