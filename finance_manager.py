@@ -133,7 +133,9 @@ class ExpensesManager(SpreadSheetOperator):
         # 統合されたカテゴリデータを作成
         self.categories = self._integrate_categories()
 
-    def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
+    def get_database(self, sheet_name: str, reset_sheet_name=False):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
+        if reset_sheet_name:
+            self.called_worksheets.pop(sheet_name)
         if sheet_name in self.called_worksheets:
             return self.called_worksheets[sheet_name]
         else:
@@ -187,6 +189,7 @@ class ExpensesManager(SpreadSheetOperator):
                 values = [self.bank_columns] + values
                 self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)  # シートを新規作成
             self.full_update(self.database_ss.worksheet(sheet_name), values)
+            self.get_database(sheet_name, reset_sheet_name=True)
 
     def update_debit_contents(self, debit_csv_path):  # デビットカードの明細で入出金データを更新する
         # まずはデビットカードの明細を取得し、同じ金額ごとに明細の情報（金額、内容）をまとめる
