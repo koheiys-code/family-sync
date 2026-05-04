@@ -48,7 +48,7 @@ def apply_edits(expense_manager, sheet_name, edited_df):
     if confirmed:
         expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
         st.session_state.show_dialog = False
-        st.session_state.toggle_state = False
+        st.session_state.edit_mode = False
         st.rerun()
 
 
@@ -106,7 +106,7 @@ elif st.session_state['authentication_status']:
     df = EM.get_database(sheet_name)
 
     if df is not None:
-        edit_mode = st.toggle("分類編集", )
+        edit_mode = st.toggle("分類編集", key='edit_mode')
         if not edit_mode:
             decorated_df = decorate_df(df, color=True)
             st.dataframe(decorated_df, hide_index=True)
