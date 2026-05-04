@@ -48,6 +48,7 @@ def apply_edits(expense_manager, sheet_name, edited_df):
     if confirmed:
         expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
         st.session_state.show_dialog = False
+        st.session_state.toggle_state = False
         st.rerun()
 
 
