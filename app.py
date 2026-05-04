@@ -128,7 +128,7 @@ elif st.session_state['authentication_status']:
                 identifier = file.name.split('_')[0]
                 if identifier == 'nyushukinmeisai':
                     EM.load_bank_csv(file)
-                if identifier == 'meisai':
+                elif identifier == 'meisai':
                     EM.update_debit_contents(file)
                 else:
                     st.write(f'読み込めませんでした。 {file.name}')
