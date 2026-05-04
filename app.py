@@ -106,15 +106,16 @@ elif st.session_state['authentication_status']:
     df = EM.get_database(sheet_name)
 
     if df is not None:
-        edit_mode = st.toggle("分類編集", key='edit_mode')
+        edit_mode = st.toggle('分類編集', key='edit_mode')
         if not edit_mode:
             decorated_df = decorate_df(df, color=True)
             st.dataframe(decorated_df, hide_index=True)
         else:
-            editable_df = decorate_df(df, color=False)
+            edit_type = st.radio('', ['出金', '入金'])
+            editable_df = decorate_df(df, edit_type=edit_type, color=False)
             disabled = editable_df.keys()
             editable_df['編集'] = False
-            edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
+            edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=False)
             if st.button('編集'):
                 apply_edits(EM, sheet_name, edited_df)
     else:
