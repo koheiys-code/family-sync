@@ -121,15 +121,14 @@ elif st.session_state['authentication_status']:
     else:
         st.write('入出金データがありません。')
 
-    bank_files = st.file_uploader(
-        "銀行の履歴をアップロード", type="csv", accept_multiple_files=True)
-    debit_files = st.file_uploader(
-        "デビットカードの履歴をアップロード", type="csv", accept_multiple_files=True)
-
+    files = st.file_uploader("利用履歴をアップロード", type="csv", accept_multiple_files=True)
     if st.button('実行'):
-        for bank_file in bank_files:
-            st.write(bank_file.name.split('_')[0])
-            EM.load_bank_csv(bank_file)
-        for debit_file in debit_files:
-            EM.update_debit_contents(debit_file)
+        for file in files:
+            identifier = file.name.split('_')[0]
+            if identifier == 'nyushukinmeisai':
+                EM.load_bank_csv(file)
+            if identifier == 'meisai':
+                EM.update_debit_contents(file)
+            else:
+                st.write(f'読み込めませんでした。 {file.name}')
         st.rerun()
