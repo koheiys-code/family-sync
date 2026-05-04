@@ -37,7 +37,7 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 
 @st.dialog('編集モード')
 def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
-    repr_category_dict = expense_manager.get_repr_category_dict()
+    repr_category_dict = expense_manager.get_repr_category_dict(edit_type)
     options = repr_category_dict.keys()
     repr_category = st.selectbox('', options)
     edited_rows = edited_df[edited_df['編集']==True]
