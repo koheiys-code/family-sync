@@ -248,6 +248,7 @@ class ExpensesManager(SpreadSheetOperator):
     def update_categories(self, sheet_name, indexes, main ,sub, edit_type):
         # TODO: edit_typeを元に変更するプログラムを作る
         df = self.get_database(sheet_name)
+        current_categories = self._get_categories_from_edit_type(edit_type)
         batch = []
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
         sub_category_col = self.bank_columns.index('小分類') + 1
@@ -262,17 +263,14 @@ class ExpensesManager(SpreadSheetOperator):
 
             # 既存のカテゴリを更新する
             content = df.loc[index, '内容']
-            if df.loc[index, '出金金額'] == '0':
-                current_categories = self.income_categories
-            else:
-                current_categories = self.cost_categories
-            pre_main ,pre_sub = self._identify_category(content)
-            if pre_main != self.uncategorized:
+            pre_main ,pre_sub = self._identify_category(content)  # 元のカテゴリを取得
+            if pre_main != self.uncategorized:  # 未分類でなければ元のカテゴリの候補から消す
                 current_categories[pre_main][pre_sub].remove(content)
-            current_categories[main][sub].append(content)
-        self.categories = self._integrate_categories()
-        self.upload_categories()
+            current_categories[main][sub].append(content)  # 新しいカテゴリに候補として追加
         self.database_ss.worksheet(sheet_name).batch_update(batch)
+        self.categories = self._integrate_categories()  # categoriesを更新
+        self.upload_categories()  # 更新したcategoriesで大元のエクセルを更新する
+
 
     def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
         items = [(self.cost_categories, self.cost_categories_ss),
@@ -296,9 +294,9 @@ class ExpensesManager(SpreadSheetOperator):
 
 
     def get_repr_category_dict(self, edit_type=None):
-        categories = self._get_categories_from_edit_type(edit_type)
+        current_categories = self._get_categories_from_edit_type(edit_type)
         repr_category_dict = {}
-        for main, sub_categories in categories.items():
+        for main, sub_categories in current_categories.items():
             for sub in sub_categories.keys():
                 if main == sub:
                     key = main
@@ -339,12 +337,12 @@ class ExpensesManager(SpreadSheetOperator):
 
     def _get_categories_from_edit_type(self, edit_type):
         if edit_type == '出金':
-            categories = self.cost_categories
+            current_categories = self.cost_categories
         elif edit_type == '入金':
-            categories = self.income_categories
+            current_categories = self.income_categories
         else:
-            categories = self.categories
-        return categories
+            current_categories = self.categories
+        return current_categories
 
 
 if __name__ == '__main__':
