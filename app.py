@@ -128,6 +128,8 @@ elif st.session_state['authentication_status']:
 
     if st.button('実行'):
         for bank_file in bank_files:
+            st.write(bank_file.name)
             EM.load_bank_csv(bank_file)
         for debit_file in debit_files:
             EM.update_debit_contents(debit_file)
+        st.rerun()
