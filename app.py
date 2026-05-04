@@ -132,4 +132,4 @@ elif st.session_state['authentication_status']:
                     EM.update_debit_contents(file)
                 else:
                     st.write(f'読み込めませんでした。 {file.name}')
-            st.rerun()
+            # st.rerun()
