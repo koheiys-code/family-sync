@@ -36,17 +36,17 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 
 
 @st.dialog('編集モード')
-def apply_edits(expense_manager, sheet_name, edited_df):
-    options = expense_manager.repr_category_dict.keys()
+def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
+    repr_category_dict = expense_manager.get_repr_category_dict()
+    options = repr_category_dict.keys()
     repr_category = st.selectbox('', options)
     edited_rows = edited_df[edited_df['編集']==True]
     st.dataframe(edited_rows, hide_index=True)
-    category_info = expense_manager.repr_category_dict[repr_category]
+    category_info = repr_category_dict[repr_category]
     main, sub = category_info['main'], category_info['sub']
     st.write(f'分類を{repr_category}に変更しますか？')
-    confirmed = st.button('確定')
-    if confirmed:
-        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub)
+    if st.button('確定'):
+        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub, edit_type)
         st.session_state.show_dialog = False
         st.session_state.edit_mode = False
         st.rerun()
@@ -115,8 +115,8 @@ elif st.session_state['authentication_status']:
             editable_df = decorate_df(df, edit_type=edit_type, color=False)
             disabled = editable_df.keys()
             editable_df['編集'] = False
-            edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=False)
+            edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
             if st.button('編集'):
-                apply_edits(EM, sheet_name, edited_df)
+                apply_edits(EM, sheet_name, edited_df, edit_type)
     else:
         st.write('入出金データがありません。')

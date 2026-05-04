@@ -132,7 +132,6 @@ class ExpensesManager(SpreadSheetOperator):
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         # 統合されたカテゴリデータを作成
         self.categories = self._integrate_categories()
-        self.repr_category_dict = self._get_repr_category_dict()
 
     def get_database(self, sheet_name: str):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
         if sheet_name in self.called_worksheets:
@@ -246,7 +245,8 @@ class ExpensesManager(SpreadSheetOperator):
         for sheet_name, update_batch in update_batches.items():
             self.database_ss.worksheet(sheet_name).batch_update(update_batch)
 
-    def update_categories(self, sheet_name, indexes, main ,sub):
+    def update_categories(self, sheet_name, indexes, main ,sub, edit_type):
+        # TODO: edit_typeを元に変更するプログラムを作る
         df = self.get_database(sheet_name)
         batch = []
         main_category_col = self.bank_columns.index('大分類') + 1  # 大分類が何列目に格納されているかを取得（エクセルは1から数える）
@@ -295,6 +295,19 @@ class ExpensesManager(SpreadSheetOperator):
             ws.batch_update(batch)
 
 
+    def get_repr_category_dict(self, edit_type=None):
+        categories = self._get_categories_from_edit_type(edit_type)
+        repr_category_dict = {}
+        for main, sub_categories in categories.items():
+            for sub in sub_categories.keys():
+                if main == sub:
+                    key = main
+                else:
+                    key = f'{main}/{sub}'
+                repr_category_dict[key] = {'main': main, 'sub': sub}
+        return repr_category_dict
+
+
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
         work_sheet = getattr(spread_sheet, sheet_name)
@@ -312,17 +325,6 @@ class ExpensesManager(SpreadSheetOperator):
         return categories
 
 
-    def _get_repr_category_dict(self):
-        repr_category_dict = {}
-        for main, sub_categories in self.categories.items():
-            for sub in sub_categories.keys():
-                if main == sub:
-                    key = main
-                else:
-                    key = f'{main}/{sub}'
-                repr_category_dict[key] = {'main': main, 'sub': sub}
-        return repr_category_dict
-
     def _integrate_categories(self):
         return dict(**self.income_categories, **self.cost_categories)
 
@@ -334,6 +336,15 @@ class ExpensesManager(SpreadSheetOperator):
                 if content in candidates:
                     return main, sub
         return self.uncategorized, self.uncategorized
+
+    def _get_categories_from_edit_type(self, edit_type):
+        if edit_type == '出金':
+            categories = self.cost_categories
+        elif edit_type == '入金':
+            categories = self.income_categories
+        else:
+            categories = self.categories
+        return categories
 
 
 if __name__ == '__main__':
