@@ -128,12 +128,6 @@ elif st.session_state['authentication_status']:
 
     if st.button('実行'):
         for bank_file in bank_files:
-            if bank_file.split('_')[0] == 'nyushukinmeisai':
-                EM.load_bank_csv(bank_file)
-            else:
-                st.write('ファイルが適切か確認して下さい。')
+            EM.load_bank_csv(bank_file)
         for debit_file in debit_files:
-            if debit_file.split('_')[0] == 'meisai':
-                EM.update_debit_contents(debit_file)
-            else:
-                st.write('ファイルが適切か確認して下さい。')
+            EM.update_debit_contents(debit_file)
