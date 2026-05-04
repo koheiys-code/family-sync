@@ -3,6 +3,6 @@ cookie:
 credentials:
   usernames:
     ayaka:
-      password: $2b$12$yebj1uWJ7.Yvgdkue4XYZeQsenzSCiKXlad4TdXOByEfRn6iQNp66
+      password: $2b$12$UL7MjMefy2K86BjXI4/0v.4A78Y/QI1m3Zva6U7an6UUqDmmZZf3e
     kohei:
-      password: $2b$12$VuoVoT9GSEXK9N6fJSi17ux/6Yd7DXR1PeixjHF3nUbxCAV8CnKm2
+      password: $2b$12$LfmOSHAPZVCUaOsPIeXxyuwUA.q0UlRLPRa8gv7wTuJKmMYMp61IO
