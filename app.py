@@ -157,6 +157,5 @@ elif st.session_state['authentication_status']:
         for name, LM in lend_managers_dict.items():
             df = LM.lend_df
             if df is not None:
-                st.dataframe(df)
-            else:
-                st.write(df)
+                st.write(name)
+                st.dataframe(df, hide_index=True)
