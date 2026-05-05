@@ -155,8 +155,7 @@ elif st.session_state['authentication_status']:
 
     with lend_tab:
         for name, LM in lend_managers_dict.items():
-            df = LM.lend_df
-            cost_sum = df.cost_sum
+            df, cost_sum = LM.lend_df, LM.cost_sum
             if df is not None:
                 st.write(f'{name}の建替えの合計は{cost_sum:,}円です。')
                 st.dataframe(df, hide_index=True)
