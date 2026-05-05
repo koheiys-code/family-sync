@@ -7,8 +7,6 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
-TODO: tomlファイルをアップロード
-TODO: 複数人になってもすぐに増やせるようなコードに変更する
 """
 from datetime import datetime
 
