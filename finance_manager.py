@@ -362,7 +362,7 @@ class LendManager(SpreadSheetOperator):
 
         self.lend_ss = self.get_spread_sheet(url)
         self.lend_df = self._get_lend_df()
-        self.sum = self._calc_sum()
+        self.cost_sum = self._calc_cost_sum(self.lend_df)
 
     def _get_lend_df(self, sheet_name='sheet1'):
         try:
@@ -372,8 +372,11 @@ class LendManager(SpreadSheetOperator):
             df = None  # シートが見つからなければNoneを返す
         return df
 
-    def _calc_sum(self):
-        return self.lend_df['出金金額'].astype(int).sum()
+    def _calc_cost_sum(self, df):
+        if df is not None:
+            return df['出金金額'].astype(int).sum()
+        else:
+            return None
 
 
 if __name__ == '__main__':
