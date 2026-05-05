@@ -158,3 +158,5 @@ elif st.session_state['authentication_status']:
             df = LM.lend_df
             if df is not None:
                 st.dataframe(df)
+            else:
+                st.write(df)
