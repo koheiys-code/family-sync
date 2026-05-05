@@ -18,7 +18,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 import finance_manager
-from finance_manager import decorate_df, get_sheet_name
+from finance_manager import get_sheet_name
 
 
 CONFIG_YAML_PATH = "config.yaml"
