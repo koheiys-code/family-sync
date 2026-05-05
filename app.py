@@ -45,7 +45,7 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
 def get_lend_managers_dict(user_name, lend_url_dict=LEND_URL_DICT, params=LEND_MANAGER_PARAMS):
     lend_managers_dict = {}
     lower_user_name = user_name.lower()
-    for name, url in lend_url_dict.item():
+    for name, url in lend_url_dict.items():
         name = name.lower()
         permission = (lower_user_name == name)
         LM = finance_manager.LendManager(url, permission=permission, **params)
