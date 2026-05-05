@@ -127,11 +127,11 @@ elif st.session_state['authentication_status']:
         if df is not None:
             edit_mode = st.toggle('分類編集', key='edit_mode')
             if not edit_mode:
-                decorated_df = decorate_df(df, color=True)
+                decorated_df = EM.decorate_df(sheet_name, color=True)
                 st.dataframe(decorated_df, hide_index=True)
             else:
                 edit_type = st.radio('', ['出金', '入金'])
-                editable_df = decorate_df(df, edit_type=edit_type, color=False)
+                editable_df = EM.decorate_df(sheet_name, edit_type=edit_type, color=False)
                 disabled = editable_df.keys()
                 editable_df['編集'] = False
                 edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
@@ -155,7 +155,8 @@ elif st.session_state['authentication_status']:
 
     with lend_tab:
         for name, LM in lend_managers_dict.items():
-            df, cost_sum = LM.lend_df, LM.cost_sum
-            if df is not None:
-                st.write(f'{name}の建替えの合計は{cost_sum:,}円です。')
-                st.dataframe(df, hide_index=True)
+            cost_sum = LM.cost_sum
+            decorate_df = LM.decorated_df
+            if decorate_df is not None:
+                st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
+                st.dataframe(decorate_df, hide_index=True)

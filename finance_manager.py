@@ -68,22 +68,6 @@ def between_days_generator(min_date: str, max_date: str, margin=10) -> Iterator[
         yield datetime.strftime(date, '%Y%m%d')
 
 
-def decorate_df(df, edit_type=None, color=True):  # 見やすいデータフレームを取得する
-    decorated_df = df.copy()
-    if edit_type == '出金':
-        decorated_df = decorated_df[decorated_df['入金金額']=='0']
-    elif edit_type == '入金':
-        decorated_df = decorated_df[decorated_df['出金金額']=='0']
-    decorated_df['日'] = decorated_df['日'].astype(int)
-    decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
-    decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
-    decorated_df = decorated_df[['日', '内容', '金額', '分類']]
-    decorated_df = decorated_df.iloc[::-1, :]
-    if color:
-        decorated_df = decorated_df.style.map(lambda x: 'color: #0275d8' if x[0]=='+' else 'color: #d9534f', subset=['金額'])
-    return decorated_df
-
-
 class SpreadSheetOperator(object):
     """Goole Spread Sheetを操作するシンプルなクラス"""
 
@@ -147,6 +131,23 @@ class ExpensesManager(SpreadSheetOperator):
                 df = None  # シートが見つからなければNoneを返す
             self.called_worksheets[sheet_name] = df
             return df
+
+
+    def decorate_df(self, sheet_name, edit_type=None, color=True):  # 見やすいデータフレームを取得する
+        df = self.get_database(sheet_name)
+        decorated_df = df.copy()
+        if edit_type == '出金':
+            decorated_df = decorated_df[decorated_df['入金金額']=='0']
+        elif edit_type == '入金':
+            decorated_df = decorated_df[decorated_df['出金金額']=='0']
+        decorated_df['日'] = decorated_df['日'].astype(int)
+        decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
+        decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
+        decorated_df = decorated_df[['日', '内容', '金額', '分類']]
+        decorated_df = decorated_df.iloc[::-1, :]
+        if color:
+            decorated_df = decorated_df.style.map(lambda x: 'color: #0275d8' if x[0]=='+' else 'color: #d9534f', subset=['金額'])
+        return decorated_df
 
 
     def load_bank_csv(self, csv_file):  # 銀行の入出金データでエクセルを更新する
@@ -362,7 +363,20 @@ class LendManager(SpreadSheetOperator):
 
         self.lend_ss = self.get_spread_sheet(url)
         self.lend_df = self._get_lend_df()
+        self.decorated_df = self._decorate_df(self.lend_df)
         self.cost_sum = self._calc_cost_sum(self.lend_df)
+
+
+    def _decorate_df(self, df):  # 見やすいデータフレームを取得する
+        if df is None:
+            return None
+        decorated_df = df.copy()
+        decorated_df['日にち'] = decorated_df['年月日'].apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日)")
+        decorated_df['金額'] = decorated_df.apply(lambda x: f"{x['出金金額']}:,")
+        decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
+        decorated_df = decorated_df[['日にち', '内容', '金額', '分類']]
+        return decorated_df
+
 
     def _get_lend_df(self, sheet_name='sheet1'):
         try:
@@ -373,10 +387,10 @@ class LendManager(SpreadSheetOperator):
         return df
 
     def _calc_cost_sum(self, df):
-        if df is not None:
-            return df['出金金額'].astype(int).sum()
-        else:
+        if df is None:
             return None
+        else:
+            return df['出金金額'].astype(int).sum()
 
 
 if __name__ == '__main__':
