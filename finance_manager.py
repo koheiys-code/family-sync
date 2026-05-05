@@ -362,7 +362,7 @@ class LendManager(SpreadSheetOperator):
 
         self.lend_ss = self.get_spread_sheet(url)
         self.lend_df = self._get_lend_df()
-
+        self.sum = self._calc_sum()
 
     def _get_lend_df(self, sheet_name='sheet1'):
         try:
@@ -371,6 +371,9 @@ class LendManager(SpreadSheetOperator):
         except gspread.WorksheetNotFound:
             df = None  # シートが見つからなければNoneを返す
         return df
+
+    def _calc_sum(self):
+        return self.lend_df['出金金額'].astype(int).sum()
 
 
 if __name__ == '__main__':
