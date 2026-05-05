@@ -25,6 +25,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive',
 ]
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
+LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
 DEBIT_GAP_DAYS = 10
 UNCATEGORIZED = '未分類'
 
@@ -346,6 +347,29 @@ class ExpensesManager(SpreadSheetOperator):
         else:
             current_categories = self.categories
         return current_categories
+
+
+class LendManager(SpreadSheetOperator):
+    """建替えを管理するためのクラス"""
+
+    def __init__(self, url, permission=False, lend_columns=LEND_COLUMNS, **kwargs):
+        # 親クラスの初期化
+        super().__init__(**kwargs)
+
+        self.permission = permission
+        self.lend_columns = lend_columns
+
+        self.lend_ss = self.get_spread_sheet(url)
+        self.lend_df = self._get_lend_df()
+
+
+    def _get_lend_df(self, sheet_name='sheet1'):
+        try:
+            lend_ws = self.lend_ss.worksheet(sheet_name)  # なければここでエラーが起こる
+            df = pd.DataFrame(lend_ws.get_all_values()[1:], columns=self.lend_columns)  # 取得できればDataFrameで返す
+        except gspread.WorksheetNotFound:
+            df = None  # シートが見つからなければNoneを返す
+        return df
 
 
 if __name__ == '__main__':

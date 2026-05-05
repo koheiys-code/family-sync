@@ -7,6 +7,8 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
+TODO: tomlファイルをアップロード
+TODO: 複数人になってもすぐに増やせるようなコードに変更する
 """
 from datetime import datetime
 
@@ -26,6 +28,10 @@ EXPENSES_MANAGER_PARAMS = {
     'cost_categories_url': st.secrets["EXPENSES_SS_URLS"]["COST_CATEGORIES_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
+LEND_URL_DICT = st.secrets["LEND_URLS"]
+LEND_MANAGER_PARAMS = {
+    'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
+}
 START_YEAR = 2026
 START_MONTH = 4
 
@@ -33,6 +39,18 @@ START_MONTH = 4
 @st.cache_resource
 def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
     return finance_manager.ExpensesManager(**params)
+
+
+@st.cache_resource
+def get_lend_managers_dict(user_name, lend_url_dict=LEND_URL_DICT, params=LEND_MANAGER_PARAMS):
+    lend_managers_dict = {}
+    lower_user_name = user_name.lower()
+    for name, url in lend_url_dict.item():
+        name = name.lower()
+        permission = (lower_user_name == name)
+        LM = finance_manager.LendManager(url, permission=permission, **params)
+        lend_managers_dict[name] = LM
+    return lend_managers_dict
 
 
 @st.dialog('編集モード')
@@ -50,9 +68,6 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
         st.session_state.show_dialog = False
         st.session_state.edit_mode = False
         st.rerun()
-
-
-EM = get_expenses_manager()
 
 
 # ユーザー設定の読み込み
@@ -76,60 +91,70 @@ elif st.session_state["authentication_status"] is False:
 elif st.session_state['authentication_status']:
     # ログイン成功
     user_name = st.session_state['username']
+    EM = get_expenses_manager()
+    lend_managers_dict = get_lend_managers_dict(user_name)
 
     st.title(':tada: family-sync')
 
-    now = datetime.now()
-    now_year, now_month = now.year, now.month
-    sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
-    if now_year == START_YEAR:
-        for month in range(START_MONTH, now_month+1):
-            repr_name = f'{now_year}年{month}月'
-            sheet_name = get_sheet_name(now_year, month)
-            sheet_name_dict[repr_name] = sheet_name
-    else:
-        for year in range(START_YEAR, now.year+1):
-            if year == START_YEAR:
-                min_month, max_month = START_MONTH, 12
-            elif year == now_year:
-                min_month, max_month = 1, now_month
-            else:
-                min_month, max_month = 1, 12
-            for month in range(min_month, max_month+1):
-                repr_name = f'{year}年{month}月'
-                sheet_name = get_sheet_name(year, month)
+    expenses_tab, lend_tab = st.tabs(['家計簿', '建替え'])
+    with expenses_tab:
+        now = datetime.now()
+        now_year, now_month = now.year, now.month
+        sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
+        if now_year == START_YEAR:
+            for month in range(START_MONTH, now_month+1):
+                repr_name = f'{now_year}年{month}月'
+                sheet_name = get_sheet_name(now_year, month)
                 sheet_name_dict[repr_name] = sheet_name
-    options = sheet_name_dict.keys()
-    default_idx = len(sheet_name_dict) - 1
-    repr_name = st.selectbox('', options, index=default_idx)
-    sheet_name = sheet_name_dict[repr_name]
-    df = EM.get_database(sheet_name)
-
-    if df is not None:
-        edit_mode = st.toggle('分類編集', key='edit_mode')
-        if not edit_mode:
-            decorated_df = decorate_df(df, color=True)
-            st.dataframe(decorated_df, hide_index=True)
         else:
-            edit_type = st.radio('', ['出金', '入金'])
-            editable_df = decorate_df(df, edit_type=edit_type, color=False)
-            disabled = editable_df.keys()
-            editable_df['編集'] = False
-            edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
-            if st.button('編集'):
-                apply_edits(EM, sheet_name, edited_df, edit_type)
-    else:
-        st.write('入出金データがありません。')
-
-    with st.form('利用履歴更新フォーム', clear_on_submit=True):
-        files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
-        if st.form_submit_button('実行'):
-            for file in files:
-                identifier = file.name.split('_')[0]
-                if identifier == 'nyushukinmeisai':
-                    EM.load_bank_csv(file)
-                elif identifier == 'meisai':
-                    EM.update_debit_contents(file)
+            for year in range(START_YEAR, now.year+1):
+                if year == START_YEAR:
+                    min_month, max_month = START_MONTH, 12
+                elif year == now_year:
+                    min_month, max_month = 1, now_month
                 else:
-                    st.write(f'読み込めませんでした。 {file.name}')
-            st.rerun()
+                    min_month, max_month = 1, 12
+                for month in range(min_month, max_month+1):
+                    repr_name = f'{year}年{month}月'
+                    sheet_name = get_sheet_name(year, month)
+                    sheet_name_dict[repr_name] = sheet_name
+        options = sheet_name_dict.keys()
+        default_idx = len(sheet_name_dict) - 1
+        repr_name = st.selectbox('', options, index=default_idx)
+        sheet_name = sheet_name_dict[repr_name]
+        df = EM.get_database(sheet_name)
+
+        if df is not None:
+            edit_mode = st.toggle('分類編集', key='edit_mode')
+            if not edit_mode:
+                decorated_df = decorate_df(df, color=True)
+                st.dataframe(decorated_df, hide_index=True)
+            else:
+                edit_type = st.radio('', ['出金', '入金'])
+                editable_df = decorate_df(df, edit_type=edit_type, color=False)
+                disabled = editable_df.keys()
+                editable_df['編集'] = False
+                edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
+                if st.button('編集'):
+                    apply_edits(EM, sheet_name, edited_df, edit_type)
+        else:
+            st.write('入出金データがありません。')
+
+        with st.form('利用履歴更新フォーム', clear_on_submit=True):
+            files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
+            if st.form_submit_button('実行'):
+                for file in files:
+                    identifier = file.name.split('_')[0]
+                    if identifier == 'nyushukinmeisai':
+                        EM.load_bank_csv(file)
+                    elif identifier == 'meisai':
+                        EM.update_debit_contents(file)
+                    else:
+                        st.write(f'読み込めませんでした。 {file.name}')
+                st.rerun()
+
+    with lend_tab:
+        for name, LM in lend_managers_dict.items():
+            df = LM.lend_df
+            if df is not None:
+                st.dataframe(df)
