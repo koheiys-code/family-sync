@@ -82,6 +82,12 @@ def add_lend(lend_manager, expense_manager):
     repr_category_dict = expense_manager.get_repr_category_dict('出金')
     options = repr_category_dict.keys()
     repr_category = st.selectbox('分類', options)
+    add_lend_text = f'{lend_date} {content} {payment:,}円 {repr_category}　で登録しますか？'
+    if st.button('確定'):
+        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub, edit_type)
+        st.session_state.show_dialog = False
+        st.session_state.edit_mode = False
+        st.rerun()
 
 
 @st.dialog('納入額計算')
