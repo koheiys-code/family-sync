@@ -152,6 +152,7 @@ elif st.session_state['authentication_status']:
                 st.rerun()
 
     with lend_tab:
+        st.write(lend_managers_dict)
         for name, LM in lend_managers_dict.items():
             cost_sum = LM.cost_sum
             decorate_df = LM.decorated_df
