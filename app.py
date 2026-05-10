@@ -89,7 +89,7 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
         for sub_job_income in sub_job_incomes:
             salary_sum_postscript += f' + {sub_job_income:,}'
         salary_sum_postscript += ' )'
-    st.write(f'合計手取り: {int(salary_sum):,}円')
+    st.write(f'合計手取り: {int(salary_sum):,}円' + salary_sum_postscript)
     st.write(f'建替え金額: {int(cost_sum):,}円')
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
