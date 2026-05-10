@@ -32,6 +32,7 @@ LEND_MANAGER_PARAMS = {
 }
 START_YEAR = 2026
 START_MONTH = 4
+PAYMENT_RATIO = 0.6
 
 
 @st.cache_resource
@@ -66,6 +67,10 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
         st.session_state.show_dialog = False
         st.session_state.edit_mode = False
         st.rerun()
+
+@st.dialog('納入額計算')
+def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
+    pass
 
 
 # ユーザー設定の読み込み
@@ -152,12 +157,15 @@ elif st.session_state['authentication_status']:
                 st.rerun()
 
     with lend_tab:
-        st.write(lend_managers_dict)
+        user_key = ''
         for name, LM in lend_managers_dict.items():
             cost_sum = LM.cost_sum
             decorate_df = LM.decorated_df
-            st.write(name)
-            st.write(LM.lend_df)
             if decorate_df is not None:
                 st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
                 st.dataframe(decorate_df, hide_index=True)
+                if LM.permission:
+                    user_key = name
+        if user_key and st.button(f'{user_key}の納入額を計算'):
+            cost_sum = lend_managers_dict[user_key].cost_sum
+            calc_monthly_payment(cost_sum)
