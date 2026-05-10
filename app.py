@@ -75,8 +75,14 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 
 
 @st.dialog('建替えを追加')
-def add_lend(lend_manager):
-    pass
+def add_lend(lend_manager, expense_manager):
+    lend_date = st.date_input('日にち')
+    content = st.text_input('内容')
+    payment = st.number_input('金額', min_value=0, value=0, step=1)
+    repr_category_dict = expense_manager.get_repr_category_dict('出金')
+    options = repr_category_dict.keys()
+    repr_category = st.selectbox('分類', options)
+
 
 @st.dialog('納入額計算')
 def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
@@ -193,7 +199,7 @@ elif st.session_state['authentication_status']:
             if decorate_df is not None:
                 st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
                 if st.button('追加', key=f'{name}_add_lend'):
-                    add_lend(LM)
+                    add_lend(LM, EM)
                 st.dataframe(decorate_df, hide_index=True)
                 if LM.permission:
                     user_key = name
