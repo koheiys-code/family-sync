@@ -7,7 +7,7 @@
 written by Kohei Yoshida, 2026/04/26
 
 TODO:
-get_databaseでcalledを更新する
+lend_managerのdecorate_dfの関数を修正する。jupyterでやる方が良さそう。
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -371,9 +371,8 @@ class LendManager(SpreadSheetOperator):
         if df is None:
             return None
         decorated_df = df.copy()
-        print(decorated_df)
-        decorated_df['日にち'] = decorated_df.apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日)")
-        decorated_df['金額'] = decorated_df.apply(lambda x: f"{x['出金金額']}:,")
+        decorated_df['日にち'] = decorated_df.apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日", axis=1)
+        decorated_df['金額'] = decorated_df.apply(lambda x: f"{int(x['出金金額']):,}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日にち', '内容', '金額', '分類']]
         return decorated_df
