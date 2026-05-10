@@ -73,7 +73,7 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
     salary = st.number_input('手取り給料', value=None, min_value=0, step=1)
     if salary is not None:
         monthly_payment = salary * ratio - cost_sum
-        st.write(f'{salary:,}☓{ratio}-{cost_sum:,}={monthly_payment}円')
+        st.write(f'{salary:,} * {ratio} - {cost_sum:,} = {monthly_payment:,}円')
 
 
 # ユーザー設定の読み込み
