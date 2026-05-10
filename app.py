@@ -80,7 +80,7 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
         st.session_state.sub_job_count += 1
     sub_job_incomes = []
     for i in range(st.session_state.sub_job_count):
-        income = st.number_input(f'副業({i+1})の収益', min_value=0, vlaue=0, step=1)
+        income = st.number_input(f'副業({i+1})の収益', min_value=0, value=0, step=1)
         sub_job_incomes.append(income)
     salary_sum = sum([main_salary] + sub_job_incomes)
     st.write(f'合計手取り: {int(salary_sum):,}')
