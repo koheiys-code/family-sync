@@ -157,7 +157,7 @@ elif st.session_state['authentication_status']:
             cost_sum = LM.cost_sum
             decorate_df = LM.decorated_df
             st.write(name)
-            st.write(LM.df)
+            st.write(LM.lend_df)
             if decorate_df is not None:
                 st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
                 st.dataframe(decorate_df, hide_index=True)
