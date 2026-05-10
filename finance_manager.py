@@ -141,7 +141,7 @@ class ExpensesManager(SpreadSheetOperator):
         elif edit_type == '入金':
             decorated_df = decorated_df[decorated_df['出金金額']=='0']
         decorated_df['日'] = decorated_df['日'].astype(int)
-        decorated_df['金額'] = decorated_df.apply(lambda x: f"-{x['出金金額']}" if x['出金金額']!='0' else f"+{x['入金金額']}", axis=1)
+        decorated_df['金額'] = decorated_df.apply(lambda x: f"-{int(x['出金金額']):,}" if x['出金金額']!='0' else f"+{int(x['入金金額']):,}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日', '内容', '金額', '分類']]
         decorated_df = decorated_df.iloc[::-1, :]
