@@ -70,7 +70,9 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 
 @st.dialog('納入額計算')
 def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
-    pass
+    salary = st.number_input('手取り給料')
+    monthly_payment = salary * ratio - cost_sum
+    st.write(f'{salary}☓{ratio}-{cost_sum}={monthly_payment}')
 
 
 # ユーザー設定の読み込み
