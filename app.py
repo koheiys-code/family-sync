@@ -192,7 +192,7 @@ elif st.session_state['authentication_status']:
             decorate_df = LM.decorated_df
             if decorate_df is not None:
                 st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
-                if st.button('追加'):
+                if st.button('追加', key=f'{name}_add_lend'):
                     add_lend(LM)
                 st.dataframe(decorate_df, hide_index=True)
                 if LM.permission:
