@@ -83,10 +83,10 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
         income = st.number_input(f'副業({i+1})の収益', min_value=0, value=0, step=1)
         sub_job_incomes.append(income)
     salary_sum = sum([main_salary] + sub_job_incomes)
-    st.write(f'合計手取り: {int(salary_sum):,}')
+    st.write(f'合計手取り: {int(salary_sum):,}円')
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
-        st.write(f'{salary_sum:,} * {ratio} - {cost_sum:,} = {int(monthly_payment):,}円')
+        st.write(f'納入額: {int(monthly_payment):,}円 (= {salary_sum:,} * {ratio} - {cost_sum:,})')
 
 
 # ユーザー設定の読み込み
