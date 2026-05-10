@@ -78,7 +78,6 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
     main_salary = st.number_input('本業の手取り', min_value=0, value=0, step=1)
     if st.button('+副業の入力枠を追加'):
         st.session_state.sub_job_count += 1
-        st.rerun()
     sub_job_incomes = []
     for i in range(st.session_state.sub_job_count):
         income = st.number_input(f'副業({i+1})の収益', min_value=0, vlaue=0, step=1)
