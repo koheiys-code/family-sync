@@ -70,9 +70,10 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 
 @st.dialog('納入額計算')
 def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
-    salary = st.number_input('手取り給料', value='int')
-    monthly_payment = salary * ratio - cost_sum
-    st.write(f'{salary:,}☓{ratio}-{cost_sum:,}={monthly_payment}円')
+    salary = st.number_input('手取り給料', value=None, step=1)
+    if salary is not None:
+        monthly_payment = salary * ratio - cost_sum
+        st.write(f'{salary:,}☓{ratio}-{cost_sum:,}={monthly_payment}円')
 
 
 # ユーザー設定の読み込み
