@@ -83,7 +83,7 @@ def add_lend(lend_manager, expense_manager):
     options = repr_category_dict.keys()
     repr_category = st.selectbox('分類', options)
     add_lend_text = f'「{lend_date} {content} {payment:,}円 {repr_category}」で登録しますか？'
-    if st.button(add_lend_text):
+    if content and payment and st.button(add_lend_text):
         expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub, edit_type)
         st.session_state.show_dialog = False
         st.session_state.edit_mode = False
@@ -109,8 +109,8 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
     st.write(f'合計手取り: {int(salary_sum):,}円' + salary_sum_postscript)
     st.write(f'建替え金額: {int(cost_sum):,}円')
     if salary_sum:
-        monthly_payment = salary_sum * ratio - cost_sum
-        st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
+        monthly_payment = salary_sum * ratio - cost_sum / 2
+        st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,} / 2)')
 
 
 # ユーザー設定の読み込み
