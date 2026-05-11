@@ -155,7 +155,7 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    expenses_tab, lend_tab = st.tabs(['家計簿', '建替え'])
+    expenses_tab, lend_tab, upload_tab = st.tabs(['家計簿', '建替え', 'データ追加'])
     with expenses_tab:
         now = datetime.now()
         now_year, now_month = now.year, now.month
@@ -202,19 +202,6 @@ elif st.session_state['authentication_status']:
         else:
             st.write('入出金データがありません。')
 
-        with st.form('利用履歴更新フォーム', clear_on_submit=True):
-            files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
-            if st.form_submit_button('実行'):
-                for file in files:
-                    identifier = file.name.split('_')[0]
-                    if identifier == 'nyushukinmeisai':
-                        EM.load_bank_csv(file)
-                    elif identifier == 'meisai':
-                        EM.update_debit_contents(file)
-                    else:
-                        st.write(f'読み込めませんでした。 {file.name}')
-                st.rerun()
-
     with lend_tab:
         user_key = ''
         for name, LM in lend_managers_dict.items():
@@ -244,3 +231,17 @@ elif st.session_state['authentication_status']:
                     deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
                     if st.button('消去'):
                         apply_delete(LM, deletable_df)
+
+    with upload_tab:
+        with st.form('利用履歴更新フォーム', clear_on_submit=True):
+            files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
+            if st.form_submit_button('実行'):
+                for file in files:
+                    identifier = file.name.split('_')[0]
+                    if identifier == 'nyushukinmeisai':
+                        EM.load_bank_csv(file)
+                    elif identifier == 'meisai':
+                        EM.update_debit_contents(file)
+                    else:
+                        st.write(f'読み込めませんでした。 {file.name}')
+                st.rerun()
