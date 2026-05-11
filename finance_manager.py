@@ -80,6 +80,9 @@ class SpreadSheetOperator(object):
     def get_spread_sheet(self, url):
         return self.client.open_by_url(url)
 
+    def df_to_matrix(self, df):
+        return [df.columns.tolist()] + df.values.tolist()
+
     def full_update(self, work_sheet, values):  # 元の内容を全て消して、データを差し替える
         work_sheet.clear()
         work_sheet.update(range_name='A1', values=values)
@@ -188,7 +191,7 @@ class ExpensesManager(SpreadSheetOperator):
                 post_df = pd.DataFrame(values, columns=self.bank_columns)
                 new_df = pd.concat([pre_df, post_df], ignore_index=True)  # 元データと新データを統合
                 new_df = new_df.drop_duplicates(subset=['日', '出金金額', '入金金額','残高'])  # 同じ取引を削除
-                values = [self.bank_columns] + new_df.values.tolist()  # エクセル用に成形
+                values = self.df_to_matrix(new_df)  # エクセル用に成形
             else:
                 values = [self.bank_columns] + values
                 self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)  # シートを新規作成
@@ -369,26 +372,24 @@ class LendManager(SpreadSheetOperator):
         self.permission = permission
         self.lend_columns = lend_columns
 
-        self.lend_ss = self.get_spread_sheet(url)
+        self.lend_ws = self._get_work_sheet(url)
         self.lend_df = self._get_lend_df()
         self.decorated_df = self._decorate_df(self.lend_df)
         self.cost_sum = self._calc_cost_sum(self.lend_df)
 
 
-    def add_lend(self, lend_date, content, payment, main, sub, sheet_name='sheet1'):
-        # LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
-        lend_date = lend_date  # TODO: datetimeから羅列のやつに変更する
-        values = [lend_date, content, payment, main, sub]
-        # TODO: dfを更新し、年月日でソートしてfull updateする
-        # TODO: work_sheet = self.lend_ssからwork_sheetにするか、ここは変更が必要
-        # TODO: self.full_update(work_sheet, values)
-        # TODO: _get_lend_dfの時点でworksheetを容れる方がまるそう。
-        pass
+    def add_lend(self, lend_date, content, payment, main, sub):
+        lend_date = lend_date.strftime('%Y%m%d')
+        payment = str(payment)
+        new_idx = len(self.lend_df)
+        new_row = [lend_date, content, payment, main, sub]
+        self.lend_df.loc[new_idx] = new_row
+        self.lend_df = self.lend_df.sort_values('年月日')
+        values = self.df_to_matrix(self.lend_df)
+        self.full_update(self.lend_ws, values)
 
 
     def _decorate_df(self, df):  # 見やすいデータフレームを取得する
-        if df is None:
-            return None
         decorated_df = df.copy()
         decorated_df['日にち'] = decorated_df.apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日", axis=1)
         decorated_df['金額'] = decorated_df.apply(lambda x: f"{int(x['出金金額']):,}", axis=1)
@@ -397,13 +398,17 @@ class LendManager(SpreadSheetOperator):
         return decorated_df
 
 
-    def _get_lend_df(self, sheet_name='sheet1'):
+    def _get_work_sheet(self, url, sheet_name='sheet1'):
         try:
-            lend_ws = self.lend_ss.worksheet(sheet_name)  # なければここでエラーが起こる
-            df = pd.DataFrame(lend_ws.get_all_values()[1:], columns=self.lend_columns)  # 取得できればDataFrameで返す
+            lend_ss = self.get_spread_sheet(url)
+            return lend_ss.worksheet(sheet_name)  # sheet_nameがなければここでエラーが起こる
         except gspread.WorksheetNotFound:
-            df = None  # シートが見つからなければNoneを返す
-        return df
+            raise ValueError(f'{self.name}のワークシート名を{sheet_name}に変更して下さい。（{url}）')
+
+
+    def _get_lend_df(self):
+        return pd.DataFrame(self.lend_ws.get_all_values()[1:], columns=self.lend_columns)
+
 
     def _calc_cost_sum(self, df):
         if df is None:

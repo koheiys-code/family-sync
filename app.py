@@ -206,13 +206,12 @@ elif st.session_state['authentication_status']:
         for name, LM in lend_managers_dict.items():
             cost_sum = LM.cost_sum
             decorate_df = LM.decorated_df
-            if decorate_df is not None:
-                st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
-                if st.button('追加', key=f'{name}_add_lend'):
-                    add_lend(LM, EM)
-                st.dataframe(decorate_df, hide_index=True)
-                if LM.permission:
-                    user_key = name
+            if LM.permission:
+                user_key = name
+            st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
+            if st.button('追加', key=f'{name}_add_lend'):
+                add_lend(LM, EM)
+            st.dataframe(decorate_df, hide_index=True)
         if user_key and st.button(f'{user_key}の納入額を計算'):
             cost_sum = lend_managers_dict[user_key].cost_sum
             calc_monthly_payment(cost_sum)
