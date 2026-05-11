@@ -388,6 +388,7 @@ class LendManager(SpreadSheetOperator):
         self.full_update(self.lend_ws, values)
 
     def full_override(self, df):
+        self.lend_df = df
         values = self.df_to_matrix(df)
         self.full_update(self.lend_ws, values)
 
