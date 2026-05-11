@@ -7,7 +7,6 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
-TODO: 建替え追加のstrftimeで日付を変更する
 """
 from datetime import datetime
 
@@ -223,18 +222,22 @@ elif st.session_state['authentication_status']:
                 st.dataframe(decorate_df, hide_index=True)
             else:
                 user_key = name
-                if st.button(f'{user_key}の納入額を計算'):
-                    cost_sum = lend_managers_dict[user_key].cost_sum
-                    calc_monthly_payment(cost_sum)
-                if st.button('追加', key=f'{name}_add_lend'):
-                    add_lend(LM, EM)
-                delete_mode = st.toggle('消去', key='delete_mode')
-                if not delete_mode:
-                    st.dataframe(decorate_df, hide_index=True)
-                else:
-                    deletable_df = decorate_df.copy()
-                    disabled = deletable_df.keys()
-                    deletable_df['消去'] = False
-                    deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
-                    if st.button('消去'):
-                        apply_delete(LM, deletable_df)
+                col1, _, col2, col3 = st.columns([1, 4, 1, 1])
+                with col1:
+                    if st.button(f'{user_key}の納入額を計算'):
+                        cost_sum = lend_managers_dict[user_key].cost_sum
+                        calc_monthly_payment(cost_sum)
+                with col2:
+                    if st.button('追加', key=f'{name}_add_lend'):
+                        add_lend(LM, EM)
+                with col3:
+                    delete_mode = st.toggle('消去', key='delete_mode')
+                    if not delete_mode:
+                        st.dataframe(decorate_df, hide_index=True)
+                    else:
+                        deletable_df = decorate_df.copy()
+                        disabled = deletable_df.keys()
+                        deletable_df['消去'] = False
+                        deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
+                        if st.button('消去'):
+                            apply_delete(LM, deletable_df)
