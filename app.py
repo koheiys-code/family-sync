@@ -179,12 +179,15 @@ elif st.session_state['authentication_status']:
                     sheet_name_dict[repr_name] = sheet_name
         options = sheet_name_dict.keys()
         default_idx = len(sheet_name_dict) - 1
-        repr_name = st.selectbox('', options, index=default_idx)
+        col1, _, col2 = st.columns([1, 2, 1])
+        with col1:
+            repr_name = st.selectbox('', options, index=default_idx)
         sheet_name = sheet_name_dict[repr_name]
         df = EM.get_database(sheet_name)
 
         if df is not None:
-            edit_mode = st.toggle('分類編集', key='edit_mode')
+            with col2:
+                edit_mode = st.toggle('分類編集', key='edit_mode')
             if not edit_mode:
                 decorated_df = EM.decorate_df(sheet_name, color=True)
                 st.dataframe(decorated_df, hide_index=True)
