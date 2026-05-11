@@ -179,7 +179,7 @@ elif st.session_state['authentication_status']:
                     sheet_name_dict[repr_name] = sheet_name
         options = sheet_name_dict.keys()
         default_idx = len(sheet_name_dict) - 1
-        col1, _, col2 = st.columns([1, 2, 1], vertical_alignment='bottom')
+        col1, _, col2 = st.columns([1, 2, 1], vertical_alignment='top')
         with col1:
             repr_name = st.selectbox('', options, index=default_idx)
         sheet_name = sheet_name_dict[repr_name]
