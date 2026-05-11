@@ -99,11 +99,11 @@ def apply_delete(lend_manager, deletable_df):
     delete_rows = deletable_df[deletable_df['消去']==True]
     st.dataframe(delete_rows, hide_index=True)
     if st.button('上記の項目を消去しますか？'):
-        # lend_manager.delete_rows(delete_rows.index)
-        st.write(delete_rows.index)
-        # st.session_state.show_dialog = False
-        # st.session_state.delete_mode = False
-        # st.rerun()
+        new_df = deletable_df[deletable_df['消去']==False]
+        lend_manager.full_override(new_df)
+        st.session_state.show_dialog = False
+        st.session_state.delete_mode = False
+        st.rerun()
 
 
 @st.dialog('納入額計算')

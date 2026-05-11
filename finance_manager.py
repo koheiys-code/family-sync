@@ -387,6 +387,10 @@ class LendManager(SpreadSheetOperator):
         values = self.df_to_matrix(self.lend_df)
         self.full_update(self.lend_ws, values)
 
+    def full_override(self, df):
+        values = self.df_to_matrix(df)
+        self.full_update(self.lend_ws, values)
+
 
     def get_decorated_df(self):  # 見やすいデータフレームを取得する
         decorated_df = self.lend_df.copy()
