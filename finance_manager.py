@@ -374,7 +374,6 @@ class LendManager(SpreadSheetOperator):
 
         self.lend_ws = self._get_work_sheet(url)
         self.lend_df = self._get_lend_df()
-        self.decorated_df = self._decorate_df(self.lend_df)
         self.cost_sum = self._calc_cost_sum(self.lend_df)
 
 
@@ -389,8 +388,8 @@ class LendManager(SpreadSheetOperator):
         self.full_update(self.lend_ws, values)
 
 
-    def _decorate_df(self, df):  # 見やすいデータフレームを取得する
-        decorated_df = df.copy()
+    def get_decorated_df(self):  # 見やすいデータフレームを取得する
+        decorated_df = self.lend_df.copy()
         decorated_df['日にち'] = decorated_df.apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日", axis=1)
         decorated_df['金額'] = decorated_df.apply(lambda x: f"{int(x['出金金額']):,}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)

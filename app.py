@@ -205,7 +205,7 @@ elif st.session_state['authentication_status']:
         user_key = ''
         for name, LM in lend_managers_dict.items():
             cost_sum = LM.cost_sum
-            decorate_df = LM.decorated_df
+            decorate_df = LM.get_decorated_df()
             if LM.permission:
                 user_key = name
             st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
