@@ -232,12 +232,12 @@ elif st.session_state['authentication_status']:
                         add_lend(LM, EM)
                 with col3:
                     delete_mode = st.toggle('消去', key='delete_mode')
-                    if not delete_mode:
-                        st.dataframe(decorate_df, hide_index=True)
-                    else:
-                        deletable_df = decorate_df.copy()
-                        disabled = deletable_df.keys()
-                        deletable_df['消去'] = False
-                        deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
-                        if st.button('消去'):
-                            apply_delete(LM, deletable_df)
+                if not delete_mode:
+                    st.dataframe(decorate_df, hide_index=True)
+                else:
+                    deletable_df = decorate_df.copy()
+                    disabled = deletable_df.keys()
+                    deletable_df['消去'] = False
+                    deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
+                    if st.button('消去'):
+                        apply_delete(LM, deletable_df)
