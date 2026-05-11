@@ -192,7 +192,8 @@ elif st.session_state['authentication_status']:
                 decorated_df = EM.decorate_df(sheet_name, color=True)
                 st.dataframe(decorated_df, hide_index=True)
             else:
-                edit_type = st.radio('', ['出金', '入金'])
+                with col2:
+                    edit_type = st.radio('', ['出金', '入金'])
                 editable_df = EM.decorate_df(sheet_name, edit_type=edit_type, color=False)
                 disabled = editable_df.keys()
                 editable_df['編集'] = False
