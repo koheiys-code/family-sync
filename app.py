@@ -96,7 +96,7 @@ def add_lend(lend_manager, expense_manager):
 
 @st.dialog('消去')
 def apply_delete(lend_manager, deletable_df):
-    delete_rows = deletable_df[deletable_df['編集']==True]
+    delete_rows = deletable_df[deletable_df['消去']==True]
     st.dataframe(delete_rows, hide_index=True)
     if st.button('上記の項目を消去しますか？'):
         # lend_manager.delete_rows(delete_rows.index)
