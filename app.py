@@ -85,7 +85,7 @@ def add_lend(lend_manager, expense_manager):
     repr_category_dict = expense_manager.get_repr_category_dict('出金')
     options = repr_category_dict.keys()
     repr_category = st.selectbox('分類', options)
-    add_lend_text = f'{name}は{lend_date}日に{content}({repr_category})として{payment:,}円を払いましたか？'
+    add_lend_text = f'{name}は{repr_date}に{content}（{repr_category}）のために{payment:,}円を払いましたか？'
     if content and payment and st.button(add_lend_text):
         category_info = repr_category_dict[repr_category]
         main, sub = category_info['main'], category_info['sub']
