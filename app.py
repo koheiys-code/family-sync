@@ -213,17 +213,12 @@ elif st.session_state['authentication_status']:
                 st.dataframe(decorate_df, hide_index=True)
             else:
                 user_key = name
-                # col1, _, col2, col3 = st.columns([4, 1, 1, 1])
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button(f'{user_key}の納入額を計算'):
-                        cost_sum = lend_managers_dict[user_key].cost_sum
-                        calc_monthly_payment(cost_sum)
-                with col2:
-                    if st.button('追加', key=f'{name}_add_lend'):
-                        add_lend(LM, EM)
-                with col3:
-                    delete_mode = st.toggle('消去', key='delete_mode')
+                if st.button(f'{user_key}の納入額を計算'):
+                    cost_sum = lend_managers_dict[user_key].cost_sum
+                    calc_monthly_payment(cost_sum)
+                if st.button('追加', key=f'{name}_add_lend'):
+                    add_lend(LM, EM)
+                delete_mode = st.toggle('消去', key='delete_mode')
                 if not delete_mode:
                     st.dataframe(decorate_df, hide_index=True)
                 else:
