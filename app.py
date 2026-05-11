@@ -96,7 +96,14 @@ def add_lend(lend_manager, expense_manager):
 
 @st.dialog('消去')
 def apply_delete(lend_manager, deletable_df):
-    pass
+    delete_rows = deletable_df[deletable_df['編集']==True]
+    st.dataframe(delete_rows, hide_index=True)
+    if st.button('上記の項目を消去しますか？'):
+        # lend_manager.delete_rows(delete_rows.index)
+        st.write(delete_rows.index)
+        # st.session_state.show_dialog = False
+        # st.session_state.delete_mode = False
+        # st.rerun()
 
 
 @st.dialog('納入額計算')
@@ -216,6 +223,9 @@ elif st.session_state['authentication_status']:
                 st.dataframe(decorate_df, hide_index=True)
             else:
                 user_key = name
+                if st.button(f'{user_key}の納入額を計算'):
+                    cost_sum = lend_managers_dict[user_key].cost_sum
+                    calc_monthly_payment(cost_sum)
                 if st.button('追加', key=f'{name}_add_lend'):
                     add_lend(LM, EM)
                 delete_mode = st.toggle('消去', key='delete_mode')
@@ -228,8 +238,3 @@ elif st.session_state['authentication_status']:
                     deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
                     if st.button('消去'):
                         apply_delete(LM, deletable_df)
-
-
-        if user_key and st.button(f'{user_key}の納入額を計算'):
-            cost_sum = lend_managers_dict[user_key].cost_sum
-            calc_monthly_payment(cost_sum)
