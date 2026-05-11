@@ -7,6 +7,7 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
+TODO: 建替え追加のstrftimeで日付を変更する
 """
 from datetime import datetime
 
@@ -47,7 +48,7 @@ def get_lend_managers_dict(user_name, lend_url_dict=LEND_URL_DICT, params=LEND_M
     for name, url in lend_url_dict.items():
         name = name.lower()
         permission = (lower_user_name == name)
-        LM = finance_manager.LendManager(url, permission=permission, **params)
+        LM = finance_manager.LendManager(name, url, permission=permission, **params)
         lend_managers_dict[name] = LM
     return lend_managers_dict
 
@@ -76,17 +77,20 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 
 @st.dialog('建替えを追加')
 def add_lend(lend_manager, expense_manager):
+    name = lend_manager.name
     lend_date = st.date_input('日にち')
+    repr_date = lend_date.strftime('%Y/%m/%d')
     content = st.text_input('内容')
     payment = st.number_input('金額', min_value=0, value=0, step=1)
     repr_category_dict = expense_manager.get_repr_category_dict('出金')
     options = repr_category_dict.keys()
     repr_category = st.selectbox('分類', options)
-    add_lend_text = f'「{lend_date} {content} {payment:,}円 {repr_category}」で登録しますか？'
+    add_lend_text = f'{name}は{lend_date}日に{content}({repr_category})として{payment:,}円を払いましたか？'
     if content and payment and st.button(add_lend_text):
-        expense_manager.update_categories(sheet_name, edited_rows.index, main ,sub, edit_type)
+        category_info = repr_category_dict[repr_category]
+        main, sub = category_info['main'], category_info['sub']
+        lend_manager.add_lend(lend_date, content, payment, main, sub)
         st.session_state.show_dialog = False
-        st.session_state.edit_mode = False
         st.rerun()
 
 
@@ -109,8 +113,8 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
     st.write(f'合計手取り: {int(salary_sum):,}円' + salary_sum_postscript)
     st.write(f'建替え金額: {int(cost_sum):,}円')
     if salary_sum:
-        monthly_payment = salary_sum * ratio - cost_sum / 2
-        st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,} / 2)')
+        monthly_payment = salary_sum * ratio - cost_sum
+        st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
 
 
 # ユーザー設定の読み込み

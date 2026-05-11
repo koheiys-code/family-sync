@@ -31,6 +31,8 @@ UNCATEGORIZED = '未分類'
 
 
 def get_sheet_name(year: int, month: int) -> str:
+    """2026, 4などの引数から、sheet_nameとして202604を返す"""
+
     return str(year) + str(month).rjust(2, '0')
 
 
@@ -246,12 +248,11 @@ class ExpensesManager(SpreadSheetOperator):
                         df.loc[df_idx, '小分類'] = sub_category
                         same_withdraw_debit_dict[withdraw].pop(idx)  # マッチしたものは候補から消去する
 
-        # シートごとにbatchで更新することで、効率よく、エラーを減らせる
+        # シートごとにbatchで更新することで、効率が上がり、エラーを減らせる
         for sheet_name, update_batch in update_batches.items():
             self.database_ss.worksheet(sheet_name).batch_update(update_batch)
 
     def update_categories(self, sheet_name, indexes, main ,sub, edit_type):
-        # TODO: edit_typeを元に変更するプログラムを作る
         df = self.get_database(sheet_name)
         current_categories = self._get_categories_from_edit_type(edit_type)
         batch = []
@@ -299,6 +300,8 @@ class ExpensesManager(SpreadSheetOperator):
 
 
     def get_repr_category_dict(self, edit_type=None):
+        """categoryを見やすくして返す。edit_typeは入金または出金で指定する。"""
+
         current_categories = self._get_categories_from_edit_type(edit_type)
         repr_category_dict = {}
         for main, sub_categories in current_categories.items():
@@ -335,13 +338,17 @@ class ExpensesManager(SpreadSheetOperator):
 
     def _identify_category(self, content: str) -> tuple[str, str]:
         """categoriesを使ってcontentの大分類と小分類を取得する"""
+
         for main, sub_categories in self.categories.items():
             for sub, candidates in sub_categories.items():
                 if content in candidates:
                     return main, sub
         return self.uncategorized, self.uncategorized
 
+
     def _get_categories_from_edit_type(self, edit_type):
+        """入金、または出金というの引数から該当するcategoriesを返す"""
+
         if edit_type == '出金':
             current_categories = self.cost_categories
         elif edit_type == '入金':
@@ -354,10 +361,11 @@ class ExpensesManager(SpreadSheetOperator):
 class LendManager(SpreadSheetOperator):
     """建替えを管理するためのクラス"""
 
-    def __init__(self, url, permission=False, lend_columns=LEND_COLUMNS, **kwargs):
+    def __init__(self, name, url, permission=False, lend_columns=LEND_COLUMNS, **kwargs):
         # 親クラスの初期化
         super().__init__(**kwargs)
 
+        self.name = name
         self.permission = permission
         self.lend_columns = lend_columns
 
@@ -365,6 +373,17 @@ class LendManager(SpreadSheetOperator):
         self.lend_df = self._get_lend_df()
         self.decorated_df = self._decorate_df(self.lend_df)
         self.cost_sum = self._calc_cost_sum(self.lend_df)
+
+
+    def add_lend(self, lend_date, content, payment, main, sub, sheet_name='sheet1'):
+        # LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
+        lend_date = lend_date  # TODO: datetimeから羅列のやつに変更する
+        values = [lend_date, content, payment, main, sub]
+        # TODO: dfを更新し、年月日でソートしてfull updateする
+        # TODO: work_sheet = self.lend_ssからwork_sheetにするか、ここは変更が必要
+        # TODO: self.full_update(work_sheet, values)
+        # TODO: _get_lend_dfの時点でworksheetを容れる方がまるそう。
+        pass
 
 
     def _decorate_df(self, df):  # 見やすいデータフレームを取得する
