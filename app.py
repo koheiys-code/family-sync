@@ -24,13 +24,13 @@ EXPENSES_MANAGER_PARAMS = {
     'income_categories_url': st.secrets["EXPENSES_SS_URLS"]["INCOME_CATEGORIES_URL"],
     'cost_categories_url': st.secrets["EXPENSES_SS_URLS"]["COST_CATEGORIES_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
+    'start_year': 2026,
+    'start_month': 4,
 }
 LEND_URL_DICT = st.secrets["LEND_URLS"]
 LEND_MANAGER_PARAMS = {
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
-START_YEAR = 2026
-START_MONTH = 4
 PAYMENT_RATIO = 0.6
 
 
@@ -156,12 +156,11 @@ elif st.session_state['authentication_status']:
 
     expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '建替え', 'データ追加'])
 
-    sheet_name_dict = EM.get_sheet_name_dict(START_YEAR, START_MONTH)
-    options = sheet_name_dict.keys()
-    default_idx = len(sheet_name_dict) - 1
+    options = EM.sheet_name_dict.keys()
+    default_idx = len(EM.sheet_name_dict) - 1
     with expenses_tab:
         repr_name = st.selectbox('', options, index=default_idx, key='expenses_options')
-        sheet_name = sheet_name_dict[repr_name]
+        sheet_name = EM.sheet_name_dict[repr_name]
         df = EM.get_database(sheet_name)
 
         if df is not None:
@@ -187,7 +186,7 @@ elif st.session_state['authentication_status']:
 
     with fig_tab:
         repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
-        sheet_name = sheet_name_dict[repr_name]
+        sheet_name = EM.sheet_name_dict[repr_name]
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
         left, right = st.columns(2)

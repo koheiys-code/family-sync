@@ -110,7 +110,7 @@ class ExpensesManager(Manager):
 
     def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
                  bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS,
-                 uncategorized=UNCATEGORIZED, **kwargs):
+                 uncategorized=UNCATEGORIZED, start_year=2026, start_month=4, **kwargs):
         # 親クラスの初期化
         super().__init__(**kwargs)
 
@@ -134,6 +134,8 @@ class ExpensesManager(Manager):
         self.cost_categories = self._get_categories(self.cost_categories_ss)
         # 統合されたカテゴリデータを作成
         self.categories = self._integrate_categories()
+        # '2026年4月': '202604'の形式の辞書を取得する
+        self.sheet_name_dict = self._get_sheet_name_dict(start_year, start_month)
 
     def get_database(self, sheet_name: str, reset_sheet_name=False):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
         if reset_sheet_name:
@@ -337,21 +339,22 @@ class ExpensesManager(Manager):
             return None
         else:
             df = df.copy()
-        mode_col = mode + '金額'
-        df[mode_col] = df[mode_col].astype(int)
-        df = df[[mode_col, '大分類', '小分類']]
-        df = df[df[mode_col] != 0]
-        main_grouped = df.groupby('大分類')[mode_col].sum()
+        mode = mode + '金額'
+        df[mode] = df[mode].astype(int)
+        df = df[[mode, '大分類', '小分類']]
+        df = df[df[mode] != 0]
+        if df.empty:
+            return None
+        main_grouped = df.groupby('大分類')[mode].sum()
         sizes = main_grouped.values
         labels = main_grouped.index
 
         fig, ax = plt.subplots()
         ax.pie(sizes, labels=labels, autopct='%1.1f%%', counterclock=False, startangle=90)
-        ax.set_title(mode)
         ax.axis('equal')
         return fig
 
-    def get_sheet_name_dict(self, start_year, start_month):
+    def _get_sheet_name_dict(self, start_year, start_month):
         now = datetime.now()
         now_year, now_month = now.year, now.month
         sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
