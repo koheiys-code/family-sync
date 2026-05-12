@@ -185,6 +185,9 @@ elif st.session_state['authentication_status']:
             st.write('入出金データがありません。')
 
     with fig_tab:
+        integrated_plot = EM.make_integrated_plot()
+        st.pyplot(integrated_plot)
+
         repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
         sheet_name = EM.sheet_name_dict[repr_name]
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')

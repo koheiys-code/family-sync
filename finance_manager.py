@@ -354,6 +354,24 @@ class ExpensesManager(Manager):
         ax.axis('equal')
         return fig
 
+    def make_integrated_plot(self):
+        df_list = []
+        for sheet_name in self.sheet_name_dict.values():
+            df = self.get_database(sheet_name)
+            if df is not None:
+                df = df[['日', '残高']].copy()
+                df['年月日'] = df.apply(lambda x: datetime.strptime(sheet_name+x['日'], '%Y%m%d'), axis=1)
+                df['残高'] = df['残高'].astype(int)
+                df_list.append(df[['年月日', '残高']])
+        integrated_df = pd.concat(df_list)
+
+        fig, ax = plt.subplots()
+        ax.plot(integrated_df['年月日'], integrated_df['残高'])
+        ax.set_xlabel('日付')
+        ax.set_ylabel('金額 (円)')
+        fig.autofmt_xdate()
+        return fig
+
     def _get_sheet_name_dict(self, start_year, start_month):
         now = datetime.now()
         now_year, now_month = now.year, now.month
