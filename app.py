@@ -7,6 +7,9 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
+TODO: 編集モードで入金にするとバグが起こる、なぜか
+TODO: グラフ作り
+TODO: 給料と建替え額から計算、その後、家計簿に反映する部分のプログラム
 """
 from datetime import datetime
 

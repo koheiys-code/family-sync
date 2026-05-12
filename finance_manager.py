@@ -140,6 +140,8 @@ class ExpensesManager(SpreadSheetOperator):
 
     def decorate_df(self, sheet_name, edit_type=None, color=True):  # 見やすいデータフレームを取得する
         df = self.get_database(sheet_name)
+        if not df:
+            return None
         decorated_df = df.copy()
         if edit_type == '出金':
             decorated_df = decorated_df[decorated_df['入金金額']=='0']
