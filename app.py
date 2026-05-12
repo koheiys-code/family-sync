@@ -191,10 +191,14 @@ elif st.session_state['authentication_status']:
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
         left, right = st.columns(2)
-        if cost_main_pie is not None:
-            left.pyplot(cost_main_pie)
-        if income_main_pie is not None:
-            right.pyplot(income_main_pie)
+        with left:
+            st.write('出金')
+            if cost_main_pie is not None:
+                st.pyplot(cost_main_pie)
+        with right:
+            st.write('入金')
+            if income_main_pie is not None:
+                st.pyplot(income_main_pie)
 
     with lend_tab:
         user_key = ''
