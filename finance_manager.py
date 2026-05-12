@@ -5,9 +5,6 @@
     https://biz.moneyforward.com/work-efficiency/basic/21627/#PythonGoogle
 
 written by Kohei Yoshida, 2026/04/26
-
-TODO:
-lend_managerのdecorate_dfの関数を修正する。jupyterでやる方が良さそう。
 """
 from collections import defaultdict
 from datetime import datetime, timedelta

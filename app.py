@@ -7,7 +7,6 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
-TODO: 編集モードで入金にするとバグが起こる、なぜか
 TODO: グラフ作り
 TODO: 給料と建替え額から計算、その後、家計簿に反映する部分のプログラム
 """
@@ -199,6 +198,8 @@ elif st.session_state['authentication_status']:
                 else:
                     disabled = editable_df.keys()
                     editable_df['編集'] = False
+                    if st.checkbox('未分類のみ'):
+                        editable_df = editable_df[editable_df['分類'=='未分類']]
                     edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
                     if st.button('編集'):
                         apply_edits(EM, sheet_name, edited_df, edit_type)
