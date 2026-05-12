@@ -351,6 +351,29 @@ class ExpensesManager(Manager):
         ax.axis('equal')
         return fig
 
+    def get_sheet_name_dict(self, start_year, start_month):
+        now = datetime.now()
+        now_year, now_month = now.year, now.month
+        sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
+        if now_year == start_year:
+            for month in range(start_month, now_month+1):
+                repr_name = f'{now_year}年{month}月'
+                sheet_name = get_sheet_name(now_year, month)
+                sheet_name_dict[repr_name] = sheet_name
+        else:
+            for year in range(start_year, now.year+1):
+                if year == start_year:
+                    min_month, max_month = start_month, 12
+                elif year == now_year:
+                    min_month, max_month = 1, now_month
+                else:
+                    min_month, max_month = 1, 12
+                for month in range(min_month, max_month+1):
+                    repr_name = f'{year}年{month}月'
+                    sheet_name = get_sheet_name(year, month)
+                    sheet_name_dict[repr_name] = sheet_name
+        return sheet_name_dict
+
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
         work_sheet = spread_sheet.worksheet(sheet_name)

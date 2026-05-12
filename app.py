@@ -10,15 +10,12 @@ written by Kohei Yoshida, 2026/04/23
 TODO: グラフ作り
 TODO: 給料と建替え額から計算、その後、家計簿に反映する部分のプログラム
 """
-from datetime import datetime
-
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
 import finance_manager
-from finance_manager import get_sheet_name
 
 
 CONFIG_YAML_PATH = "config.yaml"
@@ -158,30 +155,12 @@ elif st.session_state['authentication_status']:
     st.title(':tada: family-sync')
 
     expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '建替え', 'データ追加'])
+
+    sheet_name_dict = EM.get_sheet_name_dict(START_YEAR, START_MONTH)
+    options = sheet_name_dict.keys()
+    default_idx = len(sheet_name_dict) - 1
     with expenses_tab:
-        now = datetime.now()
-        now_year, now_month = now.year, now.month
-        sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
-        if now_year == START_YEAR:
-            for month in range(START_MONTH, now_month+1):
-                repr_name = f'{now_year}年{month}月'
-                sheet_name = get_sheet_name(now_year, month)
-                sheet_name_dict[repr_name] = sheet_name
-        else:
-            for year in range(START_YEAR, now.year+1):
-                if year == START_YEAR:
-                    min_month, max_month = START_MONTH, 12
-                elif year == now_year:
-                    min_month, max_month = 1, now_month
-                else:
-                    min_month, max_month = 1, 12
-                for month in range(min_month, max_month+1):
-                    repr_name = f'{year}年{month}月'
-                    sheet_name = get_sheet_name(year, month)
-                    sheet_name_dict[repr_name] = sheet_name
-        options = sheet_name_dict.keys()
-        default_idx = len(sheet_name_dict) - 1
-        repr_name = st.selectbox('', options, index=default_idx)
+        repr_name = st.selectbox('', options, index=default_idx, key='expenses_options')
         sheet_name = sheet_name_dict[repr_name]
         df = EM.get_database(sheet_name)
 
@@ -207,7 +186,10 @@ elif st.session_state['authentication_status']:
             st.write('入出金データがありません。')
 
     with fig_tab:
-        pass
+        repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
+        sheet_name = sheet_name_dict[repr_name]
+        main_pie = EM.make_main_pie(sheet_name, '出金')
+        st.pyplot(main_pie)
 
     with lend_tab:
         user_key = ''
