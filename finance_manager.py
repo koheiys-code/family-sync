@@ -354,6 +354,7 @@ class ExpensesManager(Manager):
         ax.axis('equal')
         return fig
 
+    @Manager.figure_decorator
     def make_integrated_plot(self):
         df_list = []
         for sheet_name in self.sheet_name_dict.values():
