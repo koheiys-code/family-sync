@@ -194,11 +194,14 @@ elif st.session_state['authentication_status']:
             else:
                 edit_type = st.radio('', ['出金', '入金'])
                 editable_df = EM.decorate_df(sheet_name, edit_type=edit_type, color=False)
-                disabled = editable_df.keys()
-                editable_df['編集'] = False
-                edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
-                if st.button('編集'):
-                    apply_edits(EM, sheet_name, edited_df, edit_type)
+                if editable_df is None:
+                    st.write(f'{edit_type}データがありません。')
+                else:
+                    disabled = editable_df.keys()
+                    editable_df['編集'] = False
+                    edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
+                    if st.button('編集'):
+                        apply_edits(EM, sheet_name, edited_df, edit_type)
         else:
             st.write('入出金データがありません。')
 

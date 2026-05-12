@@ -140,13 +140,13 @@ class ExpensesManager(SpreadSheetOperator):
 
     def decorate_df(self, sheet_name, edit_type=None, color=True):  # 見やすいデータフレームを取得する
         df = self.get_database(sheet_name)
-        if not df:
-            return None
         decorated_df = df.copy()
         if edit_type == '出金':
             decorated_df = decorated_df[decorated_df['入金金額']=='0']
         elif edit_type == '入金':
             decorated_df = decorated_df[decorated_df['出金金額']=='0']
+        if decorated_df.empty:
+            return None
         decorated_df['日'] = decorated_df['日'].astype(int)
         decorated_df['金額'] = decorated_df.apply(lambda x: f"-{int(x['出金金額']):,}" if x['出金金額']!='0' else f"+{int(x['入金金額']):,}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
