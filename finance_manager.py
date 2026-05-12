@@ -13,8 +13,12 @@ from typing import Iterator
 
 import gspread
 from google.oauth2.service_account import Credentials
+import japanize_matplotlib
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 
 SCOPES = [
@@ -90,7 +94,18 @@ class SpreadSheetOperator(object):
         else:
             raise ValueError(f'エクセルの列が足りません。（col={col}）')
 
-class ExpensesManager(SpreadSheetOperator):
+
+class Manager(SpreadSheetOperator):
+
+    @classmethod
+    def figure_decorator(cls, make_figure):
+        def wrapper(self, *args, **kwargs):
+            sns.set_style("darkgrid")
+            japanize_matplotlib.japanize()
+            return make_figure(self, *args, **kwargs)
+        return wrapper
+
+class ExpensesManager(Manager):
     """家計簿を管理するためのクラス"""
 
     def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
@@ -315,6 +330,26 @@ class ExpensesManager(SpreadSheetOperator):
                 repr_category_dict[key] = {'main': main, 'sub': sub}
         return repr_category_dict
 
+    @super.figure_decorator
+    def make_main_pie(self, sheet_name, mode):
+        df = self.get_database(sheet_name)
+        if df is None:
+            pass  # return None
+        else:
+            df = df.copy()
+        mode_col = mode + '金額'
+        df[mode_col] = df[mode_col].astype(int)
+        df = df[[mode_col, '大分類', '小分類']]
+        df = df[df[mode_col] != 0]
+        main_grouped = df.groupby('大分類')[mode_col].sum()
+        sizes = main_grouped.values
+        labels = main_grouped.index
+
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', counterclock=False, startangle=90)
+        ax.set_title(mode)
+        ax.axis('equal')
+        return fig
 
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
@@ -360,7 +395,7 @@ class ExpensesManager(SpreadSheetOperator):
         return current_categories
 
 
-class LendManager(SpreadSheetOperator):
+class LendManager(Manager):
     """建替えを管理するためのクラス"""
 
     def __init__(self, name, url, permission=False, lend_columns=LEND_COLUMNS, **kwargs):
