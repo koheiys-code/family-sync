@@ -334,7 +334,7 @@ class ExpensesManager(Manager):
     def make_main_pie(self, sheet_name, mode):
         df = self.get_database(sheet_name)
         if df is None:
-            pass  # return None
+            return None
         else:
             df = df.copy()
         mode_col = mode + '金額'

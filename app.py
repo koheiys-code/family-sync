@@ -188,8 +188,13 @@ elif st.session_state['authentication_status']:
     with fig_tab:
         repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
         sheet_name = sheet_name_dict[repr_name]
-        main_pie = EM.make_main_pie(sheet_name, '出金')
-        st.pyplot(main_pie)
+        cost_main_pie = EM.make_main_pie(sheet_name, '出金')
+        income_main_pie = EM.make_main_pie(sheet_name, '入金')
+        left, right = st.columns(2)
+        if cost_main_pie is not None:
+            left.pyplot(cost_main_pie)
+        if income_main_pie is not None:
+            right.pyplot(income_main_pie)
 
     with lend_tab:
         user_key = ''
