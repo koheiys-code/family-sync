@@ -16,6 +16,7 @@ from google.oauth2.service_account import Credentials
 import japanize_matplotlib
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
