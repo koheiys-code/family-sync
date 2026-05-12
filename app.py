@@ -199,7 +199,7 @@ elif st.session_state['authentication_status']:
                     disabled = editable_df.keys()
                     editable_df['編集'] = False
                     if st.checkbox('未分類のみ'):
-                        editable_df = editable_df[editable_df['分類'=='未分類']]
+                        editable_df = editable_df[editable_df['分類']=='未分類']
                     edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
                     if st.button('編集'):
                         apply_edits(EM, sheet_name, edited_df, edit_type)
