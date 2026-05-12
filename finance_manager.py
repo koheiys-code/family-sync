@@ -370,6 +370,7 @@ class ExpensesManager(Manager):
         ax.plot(integrated_df['年月日'], integrated_df['残高'])
         ax.set_xlabel('日付')
         ax.set_ylabel('金額 (円)')
+        ax.set_ylim(bottom=0)
         fig.autofmt_xdate()
         return fig
 
