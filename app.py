@@ -157,7 +157,7 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    expenses_tab, lend_tab, upload_tab = st.tabs(['家計簿', '建替え', 'データ追加'])
+    expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '建替え', 'データ追加'])
     with expenses_tab:
         now = datetime.now()
         now_year, now_month = now.year, now.month
@@ -205,6 +205,9 @@ elif st.session_state['authentication_status']:
                         apply_edits(EM, sheet_name, edited_df, edit_type)
         else:
             st.write('入出金データがありません。')
+
+    with fig_tab:
+        pass
 
     with lend_tab:
         user_key = ''

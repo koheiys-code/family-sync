@@ -330,7 +330,7 @@ class ExpensesManager(Manager):
                 repr_category_dict[key] = {'main': main, 'sub': sub}
         return repr_category_dict
 
-    @super.figure_decorator
+    @Manager.figure_decorator
     def make_main_pie(self, sheet_name, mode):
         df = self.get_database(sheet_name)
         if df is None:
