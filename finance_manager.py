@@ -97,12 +97,12 @@ class SpreadSheetOperator(object):
 
 class Manager(SpreadSheetOperator):
 
-    @classmethod
-    def figure_decorator(cls, make_figure):
+    def figure_decorator(make_figure):
         def wrapper(self, *args, **kwargs):
             sns.set_style("darkgrid")
             japanize_matplotlib.japanize()
-            return make_figure(self, *args, **kwargs)
+            fig = make_figure(self, *args, **kwargs)
+            return fig
         return wrapper
 
 class ExpensesManager(Manager):

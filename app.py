@@ -186,6 +186,7 @@ elif st.session_state['authentication_status']:
 
     with fig_tab:
         integrated_plot = EM.make_integrated_plot()
+        st.write('残高の推移')
         st.pyplot(integrated_plot)
 
         repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
