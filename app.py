@@ -74,7 +74,7 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
         st.rerun()
 
 
-@st.dialog('建替えを追加')
+@st.dialog('立替を追加')
 def add_lend(lend_manager, expense_manager):
     name = lend_manager.name
     lend_date = st.date_input('日にち')
@@ -122,7 +122,7 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
             salary_sum_postscript += f' + {sub_job_income:,}'
         salary_sum_postscript += ' )'
     st.write(f'合計手取り: {int(salary_sum):,}円' + salary_sum_postscript)
-    st.write(f'建替え金額: {int(cost_sum):,}円')
+    st.write(f'立替金額: {int(cost_sum):,}円')
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
         st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
@@ -155,7 +155,7 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '建替え', 'データ追加'])
+    expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '立替', 'データ追加'])
 
     options = EM.sheet_name_dict.keys()
     default_idx = len(EM.sheet_name_dict) - 1
@@ -209,7 +209,7 @@ elif st.session_state['authentication_status']:
         for name, LM in lend_managers_dict.items():
             cost_sum = LM.cost_sum
             decorate_df = LM.get_decorated_df()
-            st.write(f'{name}の建替え合計金額は{cost_sum:,}円です。')
+            st.write(f'{name}の立替合計金額は{cost_sum:,}円です。')
             if not LM.permission:
                 st.dataframe(decorate_df, hide_index=True)
             else:
