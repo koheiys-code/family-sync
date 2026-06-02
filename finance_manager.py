@@ -352,8 +352,9 @@ class ExpensesManager(Manager):
 
         fig, ax = plt.subplots()
         ax.pie(sizes, labels=labels, autopct=lambda x: f'{x * sum(sizes) / 100:,.0f}',
-               counterclock=False, startangle=90,
-               wedgeprops=dict(width=0.4, edgecolor='white'))
+            counterclock=False, startangle=90,
+            wedgeprops=dict(width=0.7, edgecolor='white'),
+            textprops={'fontsize': 11, 'weight': 'bold'})
         ax.text(0, 0, f'Total\n{total_value:,.0f}',
                 ha='center', va='center', fontsize=14, fontweight='bold')
         ax.axis('equal')
