@@ -186,10 +186,6 @@ elif st.session_state['authentication_status']:
             st.write('入出金データがありません。')
 
     with fig_tab:
-        integrated_plot = EM.make_integrated_plot()
-        st.write('残高の推移')
-        st.pyplot(integrated_plot)
-
         repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
         sheet_name = EM.sheet_name_dict[repr_name]
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
@@ -203,6 +199,10 @@ elif st.session_state['authentication_status']:
             st.write('入金')
             if income_main_pie is not None:
                 st.pyplot(income_main_pie)
+
+        integrated_plot = EM.make_integrated_plot()
+        st.write('残高の推移')
+        st.pyplot(integrated_plot)
 
     with lend_tab:
         user_key = ''
