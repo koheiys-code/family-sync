@@ -350,7 +350,7 @@ class ExpensesManager(Manager):
         labels = main_grouped.index
 
         fig, ax = plt.subplots()
-        ax.pie(sizes, labels=labels, autopct='%1.1f%%', counterclock=False, startangle=90)
+        ax.pie(sizes, labels=labels, counterclock=False, startangle=90)
         ax.axis('equal')
         return fig
 
