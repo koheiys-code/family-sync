@@ -348,10 +348,14 @@ class ExpensesManager(Manager):
         main_grouped = df.groupby('大分類')[mode].sum()
         sizes = main_grouped.values
         labels = main_grouped.index
+        total_value = sum(sizes)  # 合計金額を計算
 
         fig, ax = plt.subplots()
         ax.pie(sizes, labels=labels, autopct=lambda x: f'{x * sum(sizes) / 100:,.0f}',
-               counterclock=False, startangle=90)
+               counterclock=False, startangle=90,
+               wedgeprops=dict(width=0.4, edgecolor='white'))
+        ax.text(0, 0, f'Total\n{total_value:,.0f}',
+                ha='center', va='center', fontsize=14, fontweight='bold')
         ax.axis('equal')
         return fig
 
