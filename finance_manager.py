@@ -545,6 +545,8 @@ class LendManager(Manager):
 
     def get_decorated_df(self):  # 見やすいデータフレームを取得する
         decorated_df = self.lend_df.copy()
+        if decorated_df.empty:
+            return decorated_df
         decorated_df['日にち'] = decorated_df.apply(lambda x: f"{int(x['年月日'][4:6])}月{int(x['年月日'][6:])}日", axis=1)
         decorated_df['金額'] = decorated_df.apply(lambda x: f"{int(x['出金金額']):,}", axis=1)
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
