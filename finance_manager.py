@@ -332,6 +332,7 @@ class ExpensesManager(Manager):
                 repr_category_dict[key] = {'main': main, 'sub': sub}
         return repr_category_dict
 
+
     @Manager.figure_decorator
     def make_main_pie(self, sheet_name, mode):
         df = self.get_database(sheet_name)
@@ -380,6 +381,61 @@ class ExpensesManager(Manager):
         ax.set_ylim(bottom=0)
         fig.autofmt_xdate()
         return fig
+
+
+    def process_lend_clearance(self, sheet_name, lend_df, user_name):
+            """立替データを家計簿の指定月シートに同期し、収入・支出を補正する"""
+            df = self.get_database(sheet_name)
+            if df is None:
+                return
+
+            new_rows = []
+            # 残高の不整合を防ぐため、現在の最新レコードの残高を取得（なければ '0'）
+            last_balance = df['残高'].iloc[0] if not df.empty else '0'
+
+            for _, row in lend_df.iterrows():
+                day = row['年月日'][6:]
+                content = row['内容']
+                withdraw = row['出金金額']
+                main_cat = row['大分類']
+                sub_cat = row['小分類']
+
+                # 1. 支出補正レコード（立替えてもらった支出を家計簿に反映）
+                new_rows.append([
+                    day,
+                    f"[立替精算] {content} ({user_name}分)",
+                    '0',        # is_debit
+                    withdraw,   # 出金金額
+                    '0',        # 入金金額
+                    last_balance, # 残高は最新のものをキープして変動させない
+                    main_cat,
+                    sub_cat
+                ])
+
+                # 2. 収入補正レコード（給料から控除した分を擬似的に相殺入金）
+                new_rows.append([
+                    day,
+                    f"[立替精算] 給料控除補正 ({user_name}分)",
+                    '0',
+                    '0',
+                    withdraw,   # 入金金額に同じ額を入れる
+                    last_balance,
+                    '収入',      # 収入カテゴリー
+                    '給料'       # 収入カテゴリー
+                ])
+
+            if new_rows:
+                # 既存の取引データ（df）と結合。日付順を保つために新しいデータを下に追加
+                post_df = pd.DataFrame(new_rows, columns=self.bank_columns)
+                new_df = pd.concat([df, post_df], ignore_index=True)
+
+                # スプレッドシートを更新
+                values = self.df_to_matrix(new_df)
+                self.full_update(self.database_ss.worksheet(sheet_name), values)
+
+                # キャッシュをクリア
+                self.get_database(sheet_name, reset_sheet_name=True)
+
 
     def _get_sheet_name_dict(self, start_year, start_month):
         now = datetime.now()
@@ -487,6 +543,17 @@ class LendManager(Manager):
         decorated_df['分類'] = decorated_df.apply(lambda x: x['大分類'] if x['大分類']==x['小分類'] else f"{x['大分類']}/{x['小分類']}", axis=1)
         decorated_df = decorated_df[['日にち', '内容', '金額', '分類']]
         return decorated_df
+
+
+    def clear_lend_data(self):
+        """立替データをすべて消去し、スプレッドシートを初期化（空に）する"""
+        empty_df = pd.DataFrame(columns=self.lend_columns)
+        # クラス内のデータを更新
+        self.lend_df = empty_df
+        self.cost_sum = 0
+        # スプレッドシート側も空の状態で上書き
+        values = self.df_to_matrix(empty_df)
+        self.full_update(self.lend_ws, values)
 
 
     def _get_work_sheet(self, url, sheet_name='sheet1'):

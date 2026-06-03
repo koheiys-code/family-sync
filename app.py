@@ -10,6 +10,7 @@ written by Kohei Yoshida, 2026/04/23
 TODO: 給料と建替え額から計算、その後、家計簿に反映する部分のプログラム
 TODO: 綺麗にグラフ化するなら途中に挿入して調整になるが、ダウンロードの時にフルマッチを採用している
 TODO: 何をもって重複とするかを設定できれば、それがまるそう。
+TODO: ログインのときにユーザーネームが入り、initする方式になっている。cache_resouceとの関係はどうなる？
 """
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -32,7 +33,7 @@ LEND_URL_DICT = st.secrets["LEND_URLS"]
 LEND_MANAGER_PARAMS = {
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
-PAYMENT_RATIO = 0.6
+PAYMENT_RATIO = 0.7
 
 
 @st.cache_resource
@@ -106,7 +107,7 @@ def apply_delete(lend_manager, deletable_df):
 
 
 @st.dialog('納入額計算')
-def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
+def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
     main_salary = st.number_input('本業の手取り', min_value=0, value=0, step=1)
     if st.button('+副業の入力枠を追加'):
         st.session_state.sub_job_count += 1
@@ -121,12 +122,31 @@ def calc_monthly_payment(cost_sum, ratio=PAYMENT_RATIO):
         for sub_job_income in sub_job_incomes:
             salary_sum_postscript += f' + {sub_job_income:,}'
         salary_sum_postscript += ' )'
+
+    cost_sum = lend_manager.cost_sum
     st.write(f'合計手取り: {int(salary_sum):,}円' + salary_sum_postscript)
     st.write(f'立替金額: {int(cost_sum):,}円')
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
         st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
+        st.warning("※銀行への入金を行った後、以下のボタンを押すと家計簿に立替が反映され、立替リストがクリアされます。")
+        # lend_manager.lend_dfを使用して、expense_managerに反映させる。
 
+        if cost_sum > 0:
+            # どの月の家計簿シートにこの立替データを流し込むか選択
+            options = expense_manager.sheet_name_dict.keys()
+            default_idx = len(options) - 1
+            target_repr = st.selectbox('反映先の家計簿月を選択', options, index=default_idx)
+            target_sheet = expense_manager.sheet_name_dict[target_repr]
+
+            if st.button('精算を確定して家計簿に反映'):
+                expense_manager.process_lend_clearance(target_sheet, lend_manager.lend_df, lend_manager.name)
+                lend_manager.clear_lend_data()
+                st.success("家計簿への反映と立替データのクリアが完了しました！")
+                st.session_state.sub_job_count = 0  # 副業枠のカウントもリセット
+                st.rerun()
+        else:
+            st.info("立替金額が0円のため、家計簿への精算処理は不要です。")
 
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
@@ -215,8 +235,8 @@ elif st.session_state['authentication_status']:
             else:
                 user_key = name
                 if st.button(f'{user_key}の納入額を計算'):
-                    cost_sum = lend_managers_dict[user_key].cost_sum
-                    calc_monthly_payment(cost_sum)
+                    user_LM = lend_managers_dict[user_key]
+                    calc_monthly_payment(user_LM, EM)
                 if st.button('追加', key=f'{name}_add_lend'):
                     add_lend(LM, EM)
                 delete_mode = st.toggle('消去', key='delete_mode')
