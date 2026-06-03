@@ -383,57 +383,64 @@ class ExpensesManager(Manager):
         return fig
 
 
-    def process_lend_clearance(self, sheet_name, lend_df, user_name):
-            """立替データを家計簿の指定月シートに同期し、収入・支出を補正する"""
-            df = self.get_database(sheet_name)
-            if df is None:
+    def process_lend_clearance(self, lend_df, user_name):
+            """立替データをそれぞれの年月日の家計簿シートへ自動で振り分けて同期・補正する"""
+            if lend_df.empty:
                 return
 
-            new_rows = []
-            # 残高の不整合を防ぐため、現在の最新レコードの残高を取得（なければ '0'）
-            last_balance = df['残高'].iloc[0] if not df.empty else '0'
+            # 1. 立替データを書き込み先の sheet_name ごとにグループ化する
+            # 例: {'202604': [rows...], '202605': [rows...]}
+            sheet_batches = defaultdict(list)
 
             for _, row in lend_df.iterrows():
-                day = row['年月日'][6:]
+                date_str = row['年月日']
+                sheet_name = date_str[:6]  # '202605' を抽出
+                day = date_str[6:]         # '03' を抽出
                 content = row['内容']
                 withdraw = row['出金金額']
                 main_cat = row['大分類']
                 sub_cat = row['小分類']
 
-                # 1. 支出補正レコード（立替えてもらった支出を家計簿に反映）
-                new_rows.append([
-                    day,
-                    f"[立替精算] {content} ({user_name}分)",
-                    '0',        # is_debit
-                    withdraw,   # 出金金額
-                    '0',        # 入金金額
-                    last_balance, # 残高は最新のものをキープして変動させない
-                    main_cat,
-                    sub_cat
+                # 支出補正レコード
+                sheet_batches[sheet_name].append([
+                    day, f"[立替精算] {content} ({user_name}分)", '0', withdraw, '0', '0', main_cat, sub_cat
+                ])
+                # 収入補正レコード
+                sheet_batches[sheet_name].append([
+                    day, f"[立替精算] 給料控除補正 ({user_name}分)", '0', '0', withdraw, '0', '収入', '給料'
                 ])
 
-                # 2. 収入補正レコード（給料から控除した分を擬似的に相殺入金）
-                new_rows.append([
-                    day,
-                    f"[立替精算] 給料控除補正 ({user_name}分)",
-                    '0',
-                    '0',
-                    withdraw,   # 入金金額に同じ額を入れる
-                    last_balance,
-                    '収入',      # 収入カテゴリー
-                    '給料'       # 収入カテゴリー
-                ])
+            # 2. グループ化したシートごとにスプレッドシートを更新
+            for sheet_name, new_rows in sheet_batches.items():
+                df = self.get_database(sheet_name)
 
-            if new_rows:
-                # 既存の取引データ（df）と結合。日付順を保つために新しいデータを下に追加
+                # シートが存在しない場合は、空のベースを作る
+                if df is None:
+                    df = pd.DataFrame(columns=self.bank_columns)
+
+                # 残高の不整合を防ぐため、そのシートの最新の残高を取得
+                last_balance = df['残高'].iloc[0] if not df.empty else '0'
+
+                # 今回追加する行の「残高」欄を最新残高で埋める
+                for row in new_rows:
+                    row[self.bank_columns.index('残高')] = last_balance
+
+                # 既存データと結合してアップデート
                 post_df = pd.DataFrame(new_rows, columns=self.bank_columns)
                 new_df = pd.concat([df, post_df], ignore_index=True)
 
-                # スプレッドシートを更新
                 values = self.df_to_matrix(new_df)
-                self.full_update(self.database_ss.worksheet(sheet_name), values)
 
-                # キャッシュをクリア
+                # もしシートが全く存在していなければ新規作成
+                try:
+                    ws = self.database_ss.worksheet(sheet_name)
+                except gspread.WorksheetNotFound:
+                    ws = self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)
+                    values = [self.bank_columns] + new_rows  # 新規の時はヘッダーを付ける
+
+                self.full_update(ws, values)
+
+                # キャッシュをリセット
                 self.get_database(sheet_name, reset_sheet_name=True)
 
 

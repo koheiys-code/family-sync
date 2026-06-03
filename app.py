@@ -133,14 +133,8 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
         # lend_manager.lend_dfを使用して、expense_managerに反映させる。
 
         if cost_sum > 0:
-            # どの月の家計簿シートにこの立替データを流し込むか選択
-            options = expense_manager.sheet_name_dict.keys()
-            default_idx = len(options) - 1
-            target_repr = st.selectbox('反映先の家計簿月を選択', options, index=default_idx)
-            target_sheet = expense_manager.sheet_name_dict[target_repr]
-
             if st.button('精算を確定して家計簿に反映'):
-                expense_manager.process_lend_clearance(target_sheet, lend_manager.lend_df, lend_manager.name)
+                expense_manager.process_lend_clearance(lend_manager.lend_df, lend_manager.name)
                 lend_manager.clear_lend_data()
                 st.success("家計簿への反映と立替データのクリアが完了しました！")
                 st.session_state.sub_job_count = 0  # 副業枠のカウントもリセット
