@@ -428,6 +428,7 @@ class ExpensesManager(Manager):
                 # 既存データと結合してアップデート
                 post_df = pd.DataFrame(new_rows, columns=self.bank_columns)
                 new_df = pd.concat([df, post_df], ignore_index=True)
+                new_df = new_df.sort_values('日', ascending=True, key=lambda x: x.astype(int))
 
                 values = self.df_to_matrix(new_df)
 
