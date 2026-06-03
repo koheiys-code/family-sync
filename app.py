@@ -41,7 +41,6 @@ def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
     return finance_manager.ExpensesManager(**params)
 
 
-@st.cache_resource
 def get_lend_managers_dict(user_name, lend_url_dict=LEND_URL_DICT, params=LEND_MANAGER_PARAMS):
     lend_managers_dict = {}
     lower_user_name = user_name.lower()
@@ -151,6 +150,10 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=config['cookie']['expiry_days'],
 )
 
+# アプリ起動のタイミングでEMを作成してキャッシュ化しておく
+EM = get_expenses_manager()
+
+# ログイン画面の表示
 authenticator.login()
 if st.session_state["authentication_status"] is None:
     # デフォルト
@@ -163,8 +166,9 @@ elif st.session_state["authentication_status"] is False:
 elif st.session_state['authentication_status']:
     # ログイン成功
     user_name = st.session_state['username']
-    EM = get_expenses_manager()
-    lend_managers_dict = get_lend_managers_dict(user_name)
+    if "lend_managers_dict" not in st.session_state:
+            st.session_state.lend_managers_dict = get_lend_managers_dict(user_name)
+    lend_managers_dict = st.session_state.lend_managers_dict
     initialize_session_state()
 
     st.title(':tada: family-sync')
