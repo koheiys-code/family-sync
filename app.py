@@ -209,14 +209,10 @@ elif st.session_state['authentication_status']:
         left, right = st.columns(2)
         with left:
             if cost_main_pie is not None:
-                st.pyplot(cost_main_pie, title='出金')
-            else:
-                st.info(f'集計可能な履歴がありません。')
+                st.pyplot(cost_main_pie)
         with right:
             if income_main_pie is not None:
-                st.pyplot(income_main_pie, title='入金')
-            else:
-                st.info(f'集計可能な履歴がありません。')
+                st.pyplot(income_main_pie)
 
         st.write('---')
         st.subheader('🔍 大分類別の推移')
