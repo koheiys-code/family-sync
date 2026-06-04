@@ -363,6 +363,72 @@ class ExpensesManager(Manager):
         ax.axis('equal')
         return fig
 
+
+    @Manager.figure_decorator
+    def make_sub_category_trend_plot(self, main_category, is_ratio_display):
+        # 全てのシートのデータを結合
+        df_list = []
+        for repr_name, sheet_name in self.sheet_name_dict.items():
+            df = self.get_database(sheet_name)
+            if df is not None and not df.empty:
+                df = df[df['大分類'] == main_category].copy()
+                if not df.empty:
+                    df['対象月'] = repr_name
+                    df['金額'] = df.apply(lambda x: int(x['出金金額']) if x['出金金額']!='0' else int(x['入金金額']), axis=1)
+                    df = df[['対象月', '小分類', '金額']]
+                    df_list.append(df)
+
+        if not df_list:
+            return None
+
+        combined_df = pd.concat(df_list, ignore_index=True)
+
+        # 2. ピボットテーブルで「横軸：対象月、要素：小分類」の形に集計
+        trend_df = combined_df.pivot_table(
+            index='対象月',
+            columns='小分類',
+            values='金額',
+            aggfunc='sum'
+        ).fillna(0)
+
+        # 月の順序をシートの登録順に整列
+        month_order = list(self.sheet_name_dict.keys())
+        trend_df = trend_df.reindex(month_order).dropna(how='all')
+
+        if trend_df.empty:
+            return None
+
+        # 💡 ラジオボタンが「割合（%）」だった場合、データを100%ベースに変換する
+        if is_ratio_display:
+            # 各行（月）の合計値で、各要素を割る（行ごとの合計が1.0になるようにする）
+            row_sums = trend_df.sum(axis=1)
+            trend_df = trend_df.div(row_sums, axis=0) * 100
+
+        # グラフの描画
+        fig, ax = plt.subplots()
+        trend_df.plot(kind='bar', stacked=True, ax=ax, colormap='tab20', width=0.5)
+
+        # タイトルと軸ラベルの設定
+        title = '比率の推移' if is_ratio_display else '金額の推移'
+        ax.set_title(title, fontsize=13, pad=15)
+        ax.set_xlabel('月', fontsize=11)
+        ax.set_xticklabels(trend_df.index, rotation=0)
+        ax.grid(axis='y', linestyle='--', alpha=0.5)
+
+        # 凡例（小分類リスト）を右側に配置
+        ax.legend(title='小分類', bbox_to_anchor=(1.02, 1), loc='upper left')
+
+        # 💡 表示形式に応じてY軸のフォーマットを変更
+        if not is_ratio_display:
+            ax.set_ylabel('金額（円）', fontsize=11)
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'{int(x):,}'))
+        else:
+            ax.set_ylabel('割合（%）', fontsize=11)
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'{int(x)}%'))
+            ax.set_ylim(0, 100) # 割合のときは0〜100%に固定
+
+        return fig
+
     @Manager.figure_decorator
     def make_integrated_plot(self):
         df_list = []

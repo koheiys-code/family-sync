@@ -211,11 +211,28 @@ elif st.session_state['authentication_status']:
             st.write('出金')
             if cost_main_pie is not None:
                 st.pyplot(cost_main_pie)
+            else:
+                st.info(f'集計可能な履歴がありません。')
         with right:
             st.write('入金')
             if income_main_pie is not None:
                 st.pyplot(income_main_pie)
+            else:
+                st.info(f'集計可能な履歴がありません。')
 
+        st.write('---')
+        st.subheader('🔍 大分類別の推移')
+        main_categories = list(EM.categories.keys())
+        selected_main_cat = st.selectbox('分析したい大分類を選択してください', main_categories)
+        plot_type = st.radio('表示形式', ['金額', '割合'], horizontal=True)
+        is_ratio_display = (plot_type == '割合')
+        trend_plot = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
+        if trend_plot is not None:
+            st.pyplot(trend_plot)
+        else:
+            st.info(f'集計可能な履歴がありません。')
+
+        st.write('---')
         integrated_plot = EM.make_integrated_plot()
         st.write('残高の推移')
         st.pyplot(integrated_plot)
