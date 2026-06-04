@@ -405,8 +405,18 @@ class ExpensesManager(Manager):
             trend_df = trend_df.div(row_sums, axis=0) * 100
 
         # グラフの描画
-        fig, ax = plt.subplots()
-        trend_df.plot(kind='bar', stacked=True, ax=ax, colormap='tab20', width=0.5)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
+
+        # 💡 シンプルに書き換えたブロック内テキスト表示ロジック
+        for c in ax.containers:
+            # すべての数値をそのままフォーマット変換してラベルにする
+            labels = [
+                f'{int(v)}%' if is_ratio_display else f'{int(v):,}'
+                for v in c.datavalues
+            ]
+            # 各ブロックの中央に文字を配置
+            ax.bar_label(c, labels=labels, label_type='center', fontsize=9, color='black', weight='bold')
 
         # タイトルと軸ラベルの設定
         title = '比率の推移' if is_ratio_display else '金額の推移'
@@ -416,7 +426,7 @@ class ExpensesManager(Manager):
         ax.grid(axis='y', linestyle='--', alpha=0.5)
 
         # 凡例（小分類リスト）を右側に配置
-        ax.legend(title='小分類', bbox_to_anchor=(1.02, 1), loc='upper left')
+        ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
 
         # 💡 表示形式に応じてY軸のフォーマットを変更
         if not is_ratio_display:
