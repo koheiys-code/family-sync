@@ -405,7 +405,7 @@ class ExpensesManager(Manager):
             trend_df = trend_df.div(row_sums, axis=0) * 100
 
         # グラフの描画
-        fig, ax = plt.subplots(figsize=(10, 5))
+        fig, ax = plt.subplots()
         trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
 
         # 💡 シンプルに書き換えたブロック内テキスト表示ロジック
