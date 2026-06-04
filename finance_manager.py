@@ -453,6 +453,7 @@ class ExpensesManager(Manager):
         integrated_df = pd.concat(df_list)
 
         fig, ax = plt.subplots()
+        ax.set_title('残高の推移', fontsize=13, pad=15)
         ax.plot(integrated_df['年月日'], integrated_df['残高'])
         ax.set_xlabel('日付')
         ax.set_ylabel('金額 (円)')
