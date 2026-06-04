@@ -208,15 +208,13 @@ elif st.session_state['authentication_status']:
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
         left, right = st.columns(2)
         with left:
-            st.write('出金')
             if cost_main_pie is not None:
-                st.pyplot(cost_main_pie)
+                st.pyplot(cost_main_pie, title='出金')
             else:
                 st.info(f'集計可能な履歴がありません。')
         with right:
-            st.write('入金')
             if income_main_pie is not None:
-                st.pyplot(income_main_pie)
+                st.pyplot(income_main_pie, title='入金')
             else:
                 st.info(f'集計可能な履歴がありません。')
 
