@@ -403,11 +403,11 @@ class ExpensesManager(Manager):
 
                 # 支出補正レコード
                 sheet_batches[sheet_name].append([
-                    day, f"[立替精算] {content} ({user_name}分)", '0', withdraw, '0', '0', main_cat, sub_cat
+                    day, f"[立替精算] {content}", '0', withdraw, '0', '0', main_cat, sub_cat
                 ])
                 # 収入補正レコード
                 sheet_batches[sheet_name].append([
-                    day, f"[立替精算] 給料控除補正 ({user_name}分)", '0', '0', withdraw, '0', '収入', '給料'
+                    day, f"[立替精算] 給料控除", '0', '0', withdraw, '0', '給料', user_name
                 ])
 
             # 2. グループ化したシートごとにスプレッドシートを更新
