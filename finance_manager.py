@@ -431,7 +431,8 @@ class ExpensesManager(Manager):
         ax.grid(axis='y', linestyle='--', alpha=0.5)
 
         # 凡例（小分類リスト）を右側に配置
-        ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1], bbox_to_anchor=(1.02, 1), loc='upper left')
 
         # 💡 表示形式に応じてY軸のフォーマットを変更
         if not is_ratio_display:
