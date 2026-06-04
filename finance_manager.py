@@ -315,7 +315,7 @@ class ExpensesManager(Manager):
                     range_ = f'{start_address}:{end_address}'
                     batch.append({'range': range_, 'values': values})
                     col += 1
-            ws = getattr(spread_sheet, sheet_name)
+            ws = spread_sheet.worksheet(sheet_name)
             ws.clear()
             ws.batch_update(batch)
 

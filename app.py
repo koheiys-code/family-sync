@@ -7,7 +7,6 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
-TODO: グラフタブの円グラフに分類ごとの項目を作る
 TODO: 目的別口座を別のスプシでまとめて、グラフにする
 """
 import streamlit as st
@@ -199,7 +198,7 @@ elif st.session_state['authentication_status']:
                     if st.button('編集'):
                         apply_edits(EM, sheet_name, edited_df, edit_type)
         else:
-            st.write('入出金データがありません。')
+            st.info('入出金データがありません。')
 
     with fig_tab:
         st.subheader('🍕 月次内訳（円グラフ）')
@@ -208,7 +207,7 @@ elif st.session_state['authentication_status']:
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
         if cost_main_pie is None and income_main_pie is None:
-            st.info(f'集計可能な履歴がありません。')
+            st.info('集計可能な履歴がありません。')
         else:
             left, right = st.columns(2)
             with left:
