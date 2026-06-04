@@ -235,11 +235,10 @@ elif st.session_state['authentication_status']:
                     calc_monthly_payment(user_LM, EM)
                 if st.button('追加', key=f'{name}_add_lend'):
                     add_lend(LM, EM)
-                if not decorate_df.empty:
-                    delete_mode = st.toggle('消去', key='delete_mode')
-                    if not delete_mode:
-                        st.dataframe(decorate_df, hide_index=True)
-                    else:
+                if decorate_df.empty:
+                    st.dataframe(decorate_df, hide_index=True)
+                else:
+                    if st.toggle('消去', key='delete_mode'):
                         deletable_df = decorate_df.copy()
                         disabled = deletable_df.keys()
                         deletable_df['消去'] = False
