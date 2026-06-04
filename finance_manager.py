@@ -288,6 +288,8 @@ class ExpensesManager(Manager):
 
             # 既存のカテゴリを更新する
             content = df.loc[index, '内容']
+            if content[:4] == 'デビット':  # デビットの支払いは更新しない
+                continue
             pre_main ,pre_sub = self._identify_category(content)  # 元のカテゴリを取得
             if pre_main != self.uncategorized:  # 未分類でなければ元のカテゴリの候補から消す
                 current_categories[pre_main][pre_sub].remove(content)
