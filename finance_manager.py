@@ -366,7 +366,8 @@ class ExpensesManager(Manager):
 
 
     @Manager.figure_decorator
-    def make_sub_category_trend_plot(self, main_category, is_ratio_display):
+    def make_sub_category_trend_plot(self, main_category, is_ratio_display,
+                                     cut_off_value=3000, cut_off_ratio=5):
         # 全てのシートのデータを結合
         df_list = []
         for repr_name, sheet_name in self.sheet_name_dict.items():
@@ -410,10 +411,13 @@ class ExpensesManager(Manager):
         trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
 
         # 💡 シンプルに書き換えたブロック内テキスト表示ロジック
+        cut_off = cut_off_ratio if is_ratio_display else cut_off_value
         for c in ax.containers:
             # すべての数値をそのままフォーマット変換してラベルにする
+
             labels = [
-                f'{int(v)}%' if is_ratio_display else f'{int(v):,}'
+                (f'{int(v)}%' if is_ratio_display else f'{int(v):,}')
+                if v >= cut_off else ''
                 for v in c.datavalues
             ]
             # 各ブロックの中央に文字を配置
