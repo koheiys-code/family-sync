@@ -207,13 +207,16 @@ elif st.session_state['authentication_status']:
         sheet_name = EM.sheet_name_dict[repr_name]
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
-        left, right = st.columns(2)
-        with left:
-            if cost_main_pie is not None:
-                st.pyplot(cost_main_pie)
-        with right:
-            if income_main_pie is not None:
-                st.pyplot(income_main_pie)
+        if cost_main_pie is None and income_main_pie is None:
+            st.info(f'集計可能な履歴がありません。')
+        else:
+            left, right = st.columns(2)
+            with left:
+                if cost_main_pie is not None:
+                    st.pyplot(cost_main_pie)
+            with right:
+                if income_main_pie is not None:
+                    st.pyplot(income_main_pie)
 
         st.write('---')
         st.subheader('🔍 大分類別の推移')
