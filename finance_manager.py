@@ -509,7 +509,7 @@ class ExpensesManager(Manager):
 
 
     @Manager.figure_decorator
-    def make_integrated_plot(self):
+    def make_main_account_plot(self):
         df_list = []
         for sheet_name in self.sheet_name_dict.values():
             df = self.get_database(sheet_name)
@@ -518,11 +518,11 @@ class ExpensesManager(Manager):
                 df['年月日'] = df.apply(lambda x: datetime.strptime(sheet_name+x['日'], '%Y%m%d'), axis=1)
                 df['残高'] = df['残高'].astype(int)
                 df_list.append(df[['年月日', '残高']])
-        integrated_df = pd.concat(df_list)
+        main_account_df = pd.concat(df_list)
 
         fig, ax = plt.subplots()
         ax.set_title('残高の推移', fontsize=13, pad=15)
-        ax.plot(integrated_df['年月日'], integrated_df['残高'])
+        ax.plot(main_account_df['年月日'], main_account_df['残高'])
         ax.set_xlabel('日付')
         ax.set_ylabel('金額 (円)')
         ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))

@@ -241,9 +241,9 @@ elif st.session_state['authentication_status']:
             st.pyplot(purpose_account_plots[selected_account])
 
         st.write('---')
-        st.subheader('📈 全体残高の推移')
-        integrated_plot = EM.make_integrated_plot()
-        st.pyplot(integrated_plot)
+        st.subheader('📈 代表口座の推移')
+        main_account_plot = EM.make_main_account_plot()
+        st.pyplot(main_account_plot)
 
     with lend_tab:
         user_key = ''
