@@ -237,7 +237,7 @@ elif st.session_state['authentication_status']:
             st.info('目的別口座のデータがありません。')
         else:
             for account_name, fig in purpose_account_plots.items():
-                st.subheader(account_name)
+                st.markdown(f'##### {account_name}')
                 st.pyplot(fig)
 
         st.write('---')
