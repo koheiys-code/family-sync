@@ -221,8 +221,8 @@ elif st.session_state['authentication_status']:
         st.write('---')
         st.subheader('🔍 大分類別の推移')
         main_categories = list(EM.categories.keys())
-        selected_main_cat = st.selectbox('分析したい大分類を選択してください', main_categories)
-        plot_type = st.radio('表示形式', ['金額', '割合'], horizontal=True)
+        selected_main_cat = st.selectbox('', main_categories)
+        plot_type = st.radio('', ['金額', '割合'], horizontal=True)
         is_ratio_display = (plot_type == '割合')
         trend_plot = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
         if trend_plot is not None:
@@ -237,7 +237,7 @@ elif st.session_state['authentication_status']:
             st.info('目的別口座のデータがありません。')
         else:
             account_names = list(purpose_account_plots.keys())
-            selected_account = st.selectbox('口座を選択', account_names)
+            selected_account = st.selectbox('', account_names)
             st.pyplot(purpose_account_plots[selected_account])
 
         st.write('---')
