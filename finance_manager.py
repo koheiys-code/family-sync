@@ -179,7 +179,7 @@ class ExpensesManager(Manager):
     def load_bank_csv(self, csv_file):  # 銀行の入出金データでエクセルを更新する
         bank_df = pd.read_csv(csv_file, encoding='shift-jis', dtype=str).fillna(0)
         expenses_dic = defaultdict(list)  # 入出金の情報を該当のシートごとに格納するdict
-        purpose_account_dic = defaultdict(list)   # 目的別口座への入出金を口座名ごとに格納するdic
+        purpose_account_dict = defaultdict(list)   # 目的別口座への入出金を口座名ごとに格納するdic
 
         for _, row in bank_df.iterrows():  # 銀行からの明細を1行ずつ読み込む
             date = row['日付'].replace('/', '')  # '2026/04/01' -> '20260401'
@@ -197,7 +197,7 @@ class ExpensesManager(Manager):
                 content = 'ポイント利用'  # 'ポイント利用 (数字)'の表示を'ポイント利用'に統一
             elif content[:5] == '普通　円　':  # 目的別口座への入出金を抽出する
                 account_name = content[5:]
-                purpose_account_dic[account_name].append([date, withdraw, deposit])
+                purpose_account_dict[account_name].append([date, deposit, withdraw])
             main_category, sub_category = self._identify_category(content)
 
             expenses_dic[sheet_name].append([
@@ -225,8 +225,8 @@ class ExpensesManager(Manager):
             self.get_database(sheet_name, reset_sheet_name=True)
 
         # 目的別口座のスプレッドシートを更新する
-        if purpose_account_dic and self.purpose_account_ss is not None:
-            self._update_purpose_account(purpose_account_dic)
+        if purpose_account_dict:
+            self._update_purpose_account(purpose_account_dict)
 
 
     def update_debit_contents(self, debit_csv_path):  # デビットカードの明細で入出金データを更新する
