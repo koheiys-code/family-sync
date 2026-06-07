@@ -75,13 +75,13 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 @st.dialog('立替を追加')
 def add_lend(lend_manager, expense_manager):
     name = lend_manager.name
+    repr_category = st.selectbox('分類', options)
     lend_date = st.date_input('日にち')
     repr_date = lend_date.strftime('%Y/%m/%d')
     content = st.text_input('内容')
     payment = st.number_input('金額', min_value=0, value=0, step=1)
     repr_category_dict = expense_manager.get_repr_category_dict('出金')
     options = repr_category_dict.keys()
-    repr_category = st.selectbox('分類', options)
     add_lend_text = f'{name}は{repr_date}に{content}（{repr_category}）のために{payment:,}円を払いましたか？'
     if content and payment and st.button(add_lend_text):
         category_info = repr_category_dict[repr_category]
