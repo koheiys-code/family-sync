@@ -375,6 +375,7 @@ class ExpensesManager(Manager):
         if df.empty:
             return None
         main_grouped = df.groupby('大分類')[mode].sum()
+        main_grouped = main_grouped.sort_values(ascending=False)
         sizes = main_grouped.values
         labels = main_grouped.index
         total_value = sum(sizes)  # 合計金額を計算
