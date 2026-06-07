@@ -7,7 +7,7 @@
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
 written by Kohei Yoshida, 2026/04/23
-TODO: 立替追加のプルダウンがかぶる問題を修正
+TODO: 目的別口座の目標値を反映させる。
 """
 import streamlit as st
 import streamlit_authenticator as stauth
