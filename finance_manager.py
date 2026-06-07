@@ -500,6 +500,7 @@ class ExpensesManager(Manager):
             ax.set_title(f'残高の推移', fontsize=13, pad=15)
             ax.set_xlabel('日付')
             ax.set_ylabel('金額 (円)')
+            ax.yaxis.set_visible(False)
             ax.set_ylim(bottom=0)
             fig.autofmt_xdate()
             plot_dict[account_name] = fig
