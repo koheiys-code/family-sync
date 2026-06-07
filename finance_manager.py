@@ -26,6 +26,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive',
 ]
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
+PURPOSE_ACCOUNT_COLUMNS = ['年月日', '出金金額', '入金金額']
 LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
 DEBIT_GAP_DAYS = 10
 UNCATEGORIZED = '未分類'
@@ -108,8 +109,10 @@ class Manager(SpreadSheetOperator):
 class ExpensesManager(Manager):
     """家計簿を管理するためのクラス"""
 
-    def __init__(self, database_ss_url, income_categories_url, cost_categories_url,
+    def __init__(self, database_ss_url, purpose_account_ss_url,
+                 income_categories_url, cost_categories_url,
                  bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS,
+                 purpose_account_columns=PURPOSE_ACCOUNT_COLUMNS,
                  uncategorized=UNCATEGORIZED, start_year=2026, start_month=4, **kwargs):
         # 親クラスの初期化
         super().__init__(**kwargs)
@@ -121,11 +124,13 @@ class ExpensesManager(Manager):
         self.repr_category_dict = {}
         self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameをいれる
         self.bank_columns = bank_columns
+        self.purpose_account_columns = purpose_account_columns
         self.debit_gap_days = debit_gap_days
         self.uncategorized = uncategorized
 
         # スプレッドシートを開く
         self.database_ss = self.get_spread_sheet(database_ss_url)
+        self.purpose_account_ss = self.get_spread_sheet(purpose_account_ss_url)
         self.income_categories_ss = self.get_spread_sheet(income_categories_url)
         self.cost_categories_ss = self.get_spread_sheet(cost_categories_url)
 
@@ -174,6 +179,8 @@ class ExpensesManager(Manager):
     def load_bank_csv(self, csv_file):  # 銀行の入出金データでエクセルを更新する
         bank_df = pd.read_csv(csv_file, encoding='shift-jis', dtype=str).fillna(0)
         expenses_dic = defaultdict(list)  # 入出金の情報を該当のシートごとに格納するdict
+        purpose_account_dic = defaultdict(list)   # 目的別口座への入出金を口座名ごとに格納するdic
+
         for _, row in bank_df.iterrows():  # 銀行からの明細を1行ずつ読み込む
             date = row['日付'].replace('/', '')  # '2026/04/01' -> '20260401'
             sheet_name = date[:6]  # sheet_nameは202604のように管理する
@@ -188,6 +195,9 @@ class ExpensesManager(Manager):
                 is_debit = '1'  # デビットカードの明細はマーキング
             elif content[:6] == 'ポイント利用':
                 content = 'ポイント利用'  # 'ポイント利用 (数字)'の表示を'ポイント利用'に統一
+            elif content[:5] == '普通　円　':  # 目的別口座への入出金を抽出する
+                account_name = content[5:]
+                purpose_account_dic[account_name].append([date, withdraw, deposit])
             main_category, sub_category = self._identify_category(content)
 
             expenses_dic[sheet_name].append([
@@ -213,6 +223,11 @@ class ExpensesManager(Manager):
                 self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)  # シートを新規作成
             self.full_update(self.database_ss.worksheet(sheet_name), values)
             self.get_database(sheet_name, reset_sheet_name=True)
+
+        # 目的別口座のスプレッドシートを更新する
+        if purpose_account_dic and self.purpose_account_ss is not None:
+            self._update_purpose_account(purpose_account_dic)
+
 
     def update_debit_contents(self, debit_csv_path):  # デビットカードの明細で入出金データを更新する
         # まずはデビットカードの明細を取得し、同じ金額ごとに明細の情報（金額、内容）をまとめる
@@ -445,6 +460,7 @@ class ExpensesManager(Manager):
 
         return fig
 
+
     @Manager.figure_decorator
     def make_integrated_plot(self):
         df_list = []
@@ -553,6 +569,24 @@ class ExpensesManager(Manager):
                     sheet_name_dict[repr_name] = sheet_name
         return sheet_name_dict
 
+
+    def _update_purpose_account(self, purpose_account_dic):
+        """目的別口座への入出金をスプレッドシートの該当タブへ書き込む"""
+        for account_name, new_rows in purpose_account_dic.items():
+            try:
+                ws = self.purpose_account_ss.worksheet(account_name)
+                pre_df = pd.DataFrame(ws.get_all_values()[1:], columns=self.purpose_account_columns)
+            except gspread.WorksheetNotFound:
+                ws = self.purpose_account_ss.add_worksheet(account_name, rows=5000, cols=10)
+                pre_df = pd.DataFrame(columns=self.purpose_account_columns)
+
+            post_df = pd.DataFrame(new_rows, columns=self.purpose_account_columns)
+            new_df = pd.concat([pre_df, post_df], ignore_index=True)
+            new_df = new_df.drop_duplicates(subset=self.purpose_account_columns)  # 重複を除外
+            new_df = new_df.sort_values('年月日', ascending=True)
+            self.full_update(ws, self.df_to_matrix(new_df))
+
+
     def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
         categories = defaultdict(dict)
         work_sheet = spread_sheet.worksheet(sheet_name)
@@ -622,11 +656,13 @@ class LendManager(Manager):
         self.lend_df = self.lend_df.sort_values('年月日')
         values = self.df_to_matrix(self.lend_df)
         self.full_update(self.lend_ws, values)
+        self.cost_sum = self._calc_cost_sum(self.lend_df)
 
     def full_override(self, df):
         self.lend_df = df
         values = self.df_to_matrix(df)
         self.full_update(self.lend_ws, values)
+        self.cost_sum = self._calc_cost_sum(self.lend_df)
 
 
     def get_decorated_df(self):  # 見やすいデータフレームを取得する

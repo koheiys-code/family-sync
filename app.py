@@ -20,6 +20,7 @@ import finance_manager
 CONFIG_YAML_PATH = "config.yaml"
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
+    'purpose_account_ss_url': st.secrets["EXPENSES_SS_URLS"]["PURPOSE_ACCOUNT_SS_URL"],
     'income_categories_url': st.secrets["EXPENSES_SS_URLS"]["INCOME_CATEGORIES_URL"],
     'cost_categories_url': st.secrets["EXPENSES_SS_URLS"]["COST_CATEGORIES_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
