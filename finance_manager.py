@@ -490,15 +490,13 @@ class ExpensesManager(Manager):
             df['残高'] = (df['入金金額'] - df['出金金額']).cumsum()
 
             fig, ax = plt.subplots()
-            ax.set_title(f'{account_name} 残高推移', fontsize=13, pad=15)
+            ax.set_title(f'残高の推移', fontsize=13, pad=15)
             ax.plot(df['年月日'], df['残高'], marker='o')
             ax.set_xlabel('日付')
-            ax.set_ylabel('残高 (円)')
+            ax.set_ylabel('金額 (円)')
             ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
             ax.set_ylim(bottom=0)
-            ax.grid(axis='y', linestyle='--', alpha=0.5)
             fig.autofmt_xdate()
-            plt.tight_layout()
             plot_dict[account_name] = fig
 
         return plot_dict
