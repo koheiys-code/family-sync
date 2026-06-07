@@ -501,6 +501,7 @@ class ExpensesManager(Manager):
             ax.set_xlabel('日付')
             ax.set_ylabel('金額 (円)')
             ax.yaxis.set_ticklabels([])
+            fig.subplots_adjust(left=0.05)
             ax.set_ylim(bottom=0)
             fig.autofmt_xdate()
             plot_dict[account_name] = fig
