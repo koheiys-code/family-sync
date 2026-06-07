@@ -28,8 +28,12 @@ SCOPES = [
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
 PURPOSE_ACCOUNT_COLUMNS = ['年月日', '出金金額', '入金金額']
 LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
+DEBIT_PREFIX = 'デビット'
+POINT_USAGE_PREFIX = 'ポイント利用'
+PURPOSE_ACCOUNT_PREFIX = '普通　円　'
 DEBIT_GAP_DAYS = 10
 UNCATEGORIZED = '未分類'
+
 
 
 def get_sheet_name(year: int, month: int) -> str:
@@ -111,8 +115,12 @@ class ExpensesManager(Manager):
 
     def __init__(self, database_ss_url, purpose_account_ss_url,
                  income_categories_url, cost_categories_url,
-                 bank_columns=BANK_COLUMNS, debit_gap_days=DEBIT_GAP_DAYS,
+                 bank_columns=BANK_COLUMNS,
                  purpose_account_columns=PURPOSE_ACCOUNT_COLUMNS,
+                 debit_prefix=DEBIT_PREFIX,
+                 point_usage_prefix=POINT_USAGE_PREFIX,
+                 purpose_account_prefix=PURPOSE_ACCOUNT_PREFIX,
+                 debit_gap_days=DEBIT_GAP_DAYS,
                  uncategorized=UNCATEGORIZED, start_year=2026, start_month=4, **kwargs):
         # 親クラスの初期化
         super().__init__(**kwargs)
@@ -125,6 +133,9 @@ class ExpensesManager(Manager):
         self.called_worksheets = {}  # 一度呼び出したワークシートのDataFrameをいれる
         self.bank_columns = bank_columns
         self.purpose_account_columns = purpose_account_columns
+        self.debit_prefix = debit_prefix
+        self.point_usage_prefix = point_usage_prefix
+        self.purpose_account_prefix = purpose_account_prefix
         self.debit_gap_days = debit_gap_days
         self.uncategorized = uncategorized
 
@@ -191,12 +202,12 @@ class ExpensesManager(Manager):
             balance = tune_amount(row['残高(円)'])
 
             is_debit = '0'
-            if content[:4] == 'デビット':
+            if content.startswith(self.debit_prefix):
                 is_debit = '1'  # デビットカードの明細はマーキング
-            elif content[:6] == 'ポイント利用':
-                content = 'ポイント利用'  # 'ポイント利用 (数字)'の表示を'ポイント利用'に統一
-            elif content[:5] == '普通　円　':  # 目的別口座への入出金を抽出する
-                account_name = content[5:]
+            elif content.startswith(self.point_usage_prefix):
+                content = self.point_usage_prefix  # 'ポイント利用 (数字)'の表示を'ポイント利用'に統一
+            elif content.startswith(self.purpose_account_prefix):  # 目的別口座への入出金を抽出する
+                account_name = content[len(self.purpose_account_prefix):]
                 purpose_account_dict[account_name].append([date, deposit, withdraw])
             main_category, sub_category = self._identify_category(content)
 
@@ -303,7 +314,7 @@ class ExpensesManager(Manager):
 
             # 既存のカテゴリを更新する
             content = df.loc[index, '内容']
-            if content[:4] == 'デビット':  # デビットの支払いは更新しない
+            if content.startswith(self.debit_prefix):  # デビットの支払いは更新しない
                 continue
             pre_main ,pre_sub = self._identify_category(content)  # 元のカテゴリを取得
             if pre_main != self.uncategorized:  # 未分類でなければ元のカテゴリの候補から消す
@@ -459,6 +470,38 @@ class ExpensesManager(Manager):
             ax.set_ylim(0, 100) # 割合のときは0〜100%に固定
 
         return fig
+
+
+    @Manager.figure_decorator
+    def make_purpose_account_plots(self):
+        """目的別口座ごとの残高推移グラフを作成し、{口座名: figure}の辞書を返す"""
+        plot_dict = {}
+        for ws in self.purpose_account_ss.worksheets():
+            account_name = ws.title
+            rows = ws.get_all_values()
+            if len(rows) <= 1:  # ヘッダーのみ or 空の場合はスキップ
+                continue
+
+            df = pd.DataFrame(rows[1:], columns=self.purpose_account_columns)
+            df['年月日'] = pd.to_datetime(df['年月日'], format='%Y%m%d')
+            df['入金金額'] = df['入金金額'].astype(int)
+            df['出金金額'] = df['出金金額'].astype(int)
+            df = df.sort_values('年月日')
+            df['残高'] = (df['入金金額'] - df['出金金額']).cumsum()
+
+            fig, ax = plt.subplots()
+            ax.set_title(f'{account_name} 残高推移', fontsize=13, pad=15)
+            ax.plot(df['年月日'], df['残高'], marker='o')
+            ax.set_xlabel('日付')
+            ax.set_ylabel('残高 (円)')
+            ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
+            ax.set_ylim(bottom=0)
+            ax.grid(axis='y', linestyle='--', alpha=0.5)
+            fig.autofmt_xdate()
+            plt.tight_layout()
+            plot_dict[account_name] = fig
+
+        return plot_dict
 
 
     @Manager.figure_decorator

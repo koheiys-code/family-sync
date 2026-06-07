@@ -231,6 +231,16 @@ elif st.session_state['authentication_status']:
             st.info(f'集計可能な履歴がありません。')
 
         st.write('---')
+        st.subheader('🏦 目的別口座の残高推移')
+        purpose_account_plots = EM.make_purpose_account_plots()
+        if not purpose_account_plots:
+            st.info('目的別口座のデータがありません。')
+        else:
+            account_names = list(purpose_account_plots.keys())
+            selected_account = st.selectbox('口座を選択', account_names)
+            st.pyplot(purpose_account_plots[selected_account])
+
+        st.write('---')
         st.subheader('📈 全体残高の推移')
         integrated_plot = EM.make_integrated_plot()
         st.pyplot(integrated_plot)
