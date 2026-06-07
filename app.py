@@ -265,7 +265,7 @@ elif st.session_state['authentication_status']:
                     st.dataframe(decorate_df, hide_index=True)
                 else:
                     delete_mode = st.toggle('消去', key='delete_mode')
-                    if not delete_mode:
+                    if delete_mode:
                         deletable_df = decorate_df.copy()
                         disabled = deletable_df.keys()
                         deletable_df['消去'] = False
