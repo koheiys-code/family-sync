@@ -31,6 +31,7 @@ LEND_URL_DICT = st.secrets["LEND_URLS"]
 LEND_MANAGER_PARAMS = {
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
+PURPOSE_ACCOUNT_GOALS = st.secrets["PURPOSE_ACCOUNT_GOALS"]
 PAYMENT_RATIO = 0.7
 
 
@@ -237,7 +238,10 @@ elif st.session_state['authentication_status']:
             st.info('目的別口座のデータがありません。')
         else:
             for account_name, fig in purpose_account_plots.items():
-                st.markdown(f'##### {account_name}')
+                goal = PURPOSE_ACCOUNT_GOALS.get(account_name)
+                goal_text = f'（目標 {goal:,}円）' if goal else ''
+                # goalがある場合とない場合でのコーディング
+                st.markdown(f'##### {account_name}{goal_text}')
                 st.pyplot(fig)
 
         st.write('---')
