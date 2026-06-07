@@ -236,9 +236,9 @@ elif st.session_state['authentication_status']:
         if not purpose_account_plots:
             st.info('目的別口座のデータがありません。')
         else:
-            account_names = list(purpose_account_plots.keys())
-            selected_account = st.selectbox('', account_names)
-            st.pyplot(purpose_account_plots[selected_account])
+            for account_name, fig in purpose_account_plots.items():
+                st.subheader(account_name)
+                st.pyplot(fig)
 
         st.write('---')
         st.subheader('📈 代表口座の推移')
