@@ -94,13 +94,27 @@ SpreadSheetOperator         # Google Sheets の基本操作（認証・読み書
 .
 ├── app.py                  # Streamlitアプリ本体
 ├── finance_manager.py      # バックエンドロジック
-├── config.yaml             # 認証設定（ユーザー・パスワード）
+├── create_yaml.py          # パスワードのハッシュ化・config.yaml生成スクリプト
+├── config.yaml             # ハッシュ化済みパスワードを含む認証設定（公開可）
 ├── requirements.txt        # 依存ライブラリ
+├── user_info.csv           # 平文パスワードを記載したCSV（非公開・.gitignore推奨）
 └── .streamlit/
     └── secrets.toml        # Google認証情報・スプレッドシートURL（非公開）
 ```
 
-> `config.yaml` および `.streamlit/secrets.toml` にはパスワードや認証情報が含まれるため、リポジトリには含めていません。
+> `.streamlit/secrets.toml` および `user_info.csv` は機密情報を含むため、リポジトリには含めていません。
+
+---
+
+## パスワード管理
+
+ログイン認証には [streamlit-authenticator](https://github.com/mkhorasani/Streamlit-Authenticator) を使用しています。パスワードはbcryptでハッシュ化したうえで`config.yaml`に保存するため、`config.yaml`はリポジトリに公開しても安全です。
+
+パスワードの設定・変更時は以下の手順で`config.yaml`を更新します。
+
+1. `user_info.csv` にユーザーIDと平文パスワードを記載する
+2. `create_yaml.py` を実行してハッシュ化済みパスワードを`config.yaml`に書き込む
+3. `user_info.csv` はリポジトリに含めず、ローカルのみで管理する
 
 ---
 
