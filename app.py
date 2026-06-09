@@ -1,13 +1,17 @@
 """
 [name] app.py
-[purpose] create the family-sync web application
+[purpose] 家計簿アプリ family-sync のフロントエンド（Streamlit）
 [referensce]
     https://uepon.hatenadiary.com/entry/2025/05/18/003609
     https://qiita.com/satsat/items/b4f16d382057e0dd918a
     https://qiita.com/ushi05/items/3e51b218e3e45ef74ff4
 
-written by Kohei Yoshida, 2026/04/23
-TODO: 目的別口座の目標値を反映させる。
+written by Kohei Yoshida, 2026/06/09
+構成:
+    - 家計簿タブ: 月次の入出金一覧と分類編集
+    - グラフタブ: 月次円グラフ・大分類推移・目的別口座残高・代表口座残高
+    - 立替タブ: 個人の立替管理と精算
+    - データ追加タブ: 銀行CSV・デビットCSVのアップロード
 """
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -17,7 +21,10 @@ from yaml.loader import SafeLoader
 import finance_manager
 
 
+# 認証設定ファイルのパス
 CONFIG_YAML_PATH = "config.yaml"
+
+# ExpensesManagerの初期化パラメータ（Streamlit secretsから読み込む）
 EXPENSES_MANAGER_PARAMS = {
     'database_ss_url': st.secrets["EXPENSES_SS_URLS"]["DATABASE_SS_URL"],
     'purpose_account_ss_url': st.secrets["EXPENSES_SS_URLS"]["PURPOSE_ACCOUNT_SS_URL"],
@@ -27,37 +34,56 @@ EXPENSES_MANAGER_PARAMS = {
     'start_year': 2026,
     'start_month': 4,
 }
+# 立替スプレッドシートのURL辞書（キーはユーザー名）
 LEND_URL_DICT = st.secrets["LEND_URLS"]
+
+# LendManagerの初期化パラメータ
 LEND_MANAGER_PARAMS = {
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
+
+# 目的別口座の目標金額辞書（キーは口座名、値は目標金額）
+# secrets.tomlの[PURPOSE_ACCOUNT_GOALS]セクションで管理する
 PURPOSE_ACCOUNT_GOALS = st.secrets["PURPOSE_ACCOUNT_GOALS"]
+
+# 給与から家計への納入割合（例: 0.7 = 手取りの70%を納入する）
 PAYMENT_RATIO = 0.7
 
 
 @st.cache_resource
 def get_expenses_manager(params=EXPENSES_MANAGER_PARAMS):
+    """ExpensesManagerをキャッシュして返す。
+    st.cache_resourceによりアプリ起動時に一度だけ初期化され、
+    Google Sheets APIへの過剰なアクセスを防ぐ。
+    """
     return finance_manager.ExpensesManager(**params)
 
 
 def get_lend_managers_dict(user_name, lend_url_dict=LEND_URL_DICT, params=LEND_MANAGER_PARAMS):
+    """全ユーザーのLendManagerを生成し、{ユーザー名: LendManager}形式の辞書を返す。
+    ログイン中のユーザーのみpermission=Trueとなり、自分の立替の編集・精算が可能になる。
+    """
     lend_managers_dict = {}
     lower_user_name = user_name.lower()
     for name, url in lend_url_dict.items():
         name = name.lower()
-        permission = (lower_user_name == name)
+        permission = (lower_user_name == name)  # ログインユーザーのみ編集権限を付与
         LM = finance_manager.LendManager(name, url, permission=permission, **params)
         lend_managers_dict[name] = LM
     return lend_managers_dict
 
 
 def initialize_session_state():
+    """session_stateの初期値を設定する。
+    副業収入の入力枠数など、ダイアログをまたいで保持したい状態を管理する。
+    """
     if "sub_job_count" not in st.session_state:
         st.session_state.sub_job_count = 0
 
 
 @st.dialog('編集モード')
 def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
+    """チェックした行のカテゴリを一括変更するダイアログ。"""
     repr_category_dict = expense_manager.get_repr_category_dict(edit_type)
     options = repr_category_dict.keys()
     repr_category = st.selectbox('', options)
@@ -75,6 +101,7 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
 
 @st.dialog('立替を追加')
 def add_lend(lend_manager, expense_manager):
+    """立替データを1件追加するダイアログ。"""
     name = lend_manager.name
     lend_date = st.date_input('日にち')
     repr_date = lend_date.strftime('%Y/%m/%d')
@@ -94,6 +121,7 @@ def add_lend(lend_manager, expense_manager):
 
 @st.dialog('消去')
 def apply_delete(lend_manager, deletable_df):
+    """チェックした立替データを削除するダイアログ。"""
     delete_rows = deletable_df[deletable_df['消去']==True]
     st.dataframe(delete_rows, hide_index=True)
     if st.button('上記の項目を消去しますか？'):
@@ -106,6 +134,10 @@ def apply_delete(lend_manager, deletable_df):
 
 @st.dialog('納入額計算')
 def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
+    """給与と立替金額から今月の納入額を計算するダイアログ。
+    納入額 = 合計手取り * ratio - 立替合計金額
+    精算確定ボタンを押すと家計簿への反映と立替データのクリアが実行される。
+    """
     main_salary = st.number_input('本業の手取り', min_value=0, value=0, step=1)
     if st.button('+副業の入力枠を追加'):
         st.session_state.sub_job_count += 1
@@ -150,6 +182,7 @@ authenticator = stauth.Authenticate(
 )
 
 # アプリ起動のタイミングでEMを作成してキャッシュ化しておく
+# ログイン前に実行することで、ログイン後の初回表示を高速化する
 EM = get_expenses_manager()
 
 # ログイン画面の表示
@@ -247,7 +280,10 @@ elif st.session_state['authentication_status']:
         st.write('---')
         st.subheader('📈 代表口座の推移')
         main_account_plot = EM.make_main_account_plot()
-        st.pyplot(main_account_plot)
+        if main_account_plot is not None:
+            st.pyplot(main_account_plot)
+        else:
+            st.info(f'集計可能な履歴がありません。')
 
     with lend_tab:
         user_key = ''
@@ -287,6 +323,9 @@ elif st.session_state['authentication_status']:
             files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
             if st.form_submit_button('実行'):
                 for file in files:
+                    # ファイル名の先頭でCSVの種別を判定する
+                    # nyushukinmeisai_*.csv -> 銀行の入出金明細
+                    # meisai_*.csv -> デビットカードの利用明細
                     identifier = file.name.split('_')[0]
                     if identifier == 'nyushukinmeisai':
                         EM.load_bank_csv(file)

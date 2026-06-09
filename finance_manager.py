@@ -1,10 +1,14 @@
 """
 [name] finance_manager.py
-[purpose] functions for household expenses
+[purpose] 家計簿アプリ family-sync のバックエンドロジック
+    - SpreadSheetOperator: Google Spread Sheetの基本操作
+    - Manager: グラフ描画デコレータを持つ中間クラス
+    - ExpensesManager: 家計簿の読み書き・分類・グラフ作成
+    - LendManager: 個人の立替管理
 [referensce]
     https://biz.moneyforward.com/work-efficiency/basic/21627/#PythonGoogle
 
-written by Kohei Yoshida, 2026/04/26
+written by Kohei Yoshida, 2026/06/09
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -21,18 +25,30 @@ import pandas as pd
 import seaborn as sns
 
 
+# Google Sheets APIのアクセス権限スコープ
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
 ]
+
+# 家計簿スプレッドシートの列定義
 BANK_COLUMNS = ['日', '内容', 'is_debit', '出金金額', '入金金額', '残高', '大分類', '小分類']
+# 目的別口座スプレッドシートの列定義
 PURPOSE_ACCOUNT_COLUMNS = ['年月日', '出金金額', '入金金額']
+# 立替スプレッドシートの列定義
 LEND_COLUMNS = ['年月日', '内容', '出金金額', '大分類', '小分類']
-DEBIT_PREFIX = 'デビット'
-POINT_USAGE_PREFIX = 'ポイント利用'
-PURPOSE_ACCOUNT_PREFIX = '普通　円　'
+
+# 銀行CSVの内容（content）識別用プレフィックス
+# これらは銀行側のフォーマットに依存しており、変更時はここだけ修正する
+DEBIT_PREFIX = 'デビット'           # デビットカード決済の識別子
+POINT_USAGE_PREFIX = 'ポイント利用'  # ポイント利用の識別子
+PURPOSE_ACCOUNT_PREFIX = '普通　円　'  # 目的別口座への振替の識別子（例: '普通　円　生活防衛費'）
+
+# デビットカードと銀行CSVで許容する日付ズレの最大日数
+# 同じ取引でもカードと銀行で記録日が異なることがあるため、この範囲内でマッチングする
 DEBIT_GAP_DAYS = 10
-UNCATEGORIZED = '未分類'
+
+UNCATEGORIZED = '未分類'  # 分類未設定時のデフォルト値
 
 
 
@@ -77,23 +93,32 @@ def between_days_generator(min_date: str, max_date: str, margin=10) -> Iterator[
 
 
 class SpreadSheetOperator(object):
-    """Goole Spread Sheetを操作するシンプルなクラス"""
+    """Google Spread Sheetを操作する基底クラス。
+    認証・シート取得・データ書き込みなど、スプレッドシート操作の共通処理をまとめる。
+    """
 
     def __init__(self, service_account_info, scopes=SCOPES) -> None:
+        # サービスアカウントの認証情報からGoogle APIの認証を行う
         credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
         self.client = gspread.authorize(credentials)
 
     def get_spread_sheet(self, url):
+        """URLからスプレッドシートオブジェクトを取得する"""
         return self.client.open_by_url(url)
 
     def df_to_matrix(self, df):
+        """DataFrameをスプレッドシートへ書き込める形式（ヘッダー + 行リスト）に変換する"""
         return [df.columns.tolist()] + df.values.tolist()
 
-    def full_update(self, work_sheet, values):  # 元の内容を全て消して、データを差し替える
+    def full_update(self, work_sheet, values):
+        """ワークシートの内容を全て消去し、指定データで上書きする。"""
         work_sheet.clear()
         work_sheet.update(range_name='A1', values=values)
 
-    def get_cell_address(self, row: int, col: int) -> str:  #row=1, col=1 -> A1
+    def get_cell_address(self, row: int, col: int) -> str:
+        """行番号・列番号からスプレッドシートのセルアドレスを返す。（例: row=1, col=1 -> 'A1'）
+        列はA〜Z（1〜26）のみ対応。範囲外の場合はValueErrorを発生させる。
+        """
         if 1 <= col and col <= 26:
             return chr(64+col) + str(row)
         else:
@@ -101,8 +126,16 @@ class SpreadSheetOperator(object):
 
 
 class Manager(SpreadSheetOperator):
+    """SpreadSheetOperatorを継承し、グラフ描画の共通設定を提供する中間クラス。
+    全てのグラフ生成メソッドにfigure_decoratorを適用することで、
+    スタイルと日本語フォントの設定を一元管理する。
+    """
 
     def figure_decorator(make_figure):
+        """グラフ生成メソッドに共通のスタイル設定を注入するデコレータ。
+        全グラフで統一したビジュアルと日本語表示を保証する。
+        戻り値の型を問わないため、figureだけでなく辞書を返すメソッドにも適用可能。
+        """
         def wrapper(self, *args, **kwargs):
             sns.set_style("darkgrid")
             japanize_matplotlib.japanize()
@@ -111,7 +144,14 @@ class Manager(SpreadSheetOperator):
         return wrapper
 
 class ExpensesManager(Manager):
-    """家計簿を管理するためのクラス"""
+    """家計簿の全機能を担うメインクラス。
+    銀行CSVの読み込み・カテゴリ分類・スプレッドシートへの書き込み・グラフ生成を行う。
+    Google Spread Sheetを以下の4つのスプレッドシートで管理する:
+        - database_ss: 月次の入出金データ（シート名は'202604'形式）
+        - purpose_account_ss: 目的別口座の入出金履歴（シート名は口座名）
+        - income_categories_ss: 入金カテゴリの定義と候補キーワード
+        - cost_categories_ss: 出金カテゴリの定義と候補キーワード
+    """
 
     def __init__(self, database_ss_url, purpose_account_ss_url,
                  income_categories_url, cost_categories_url,
@@ -153,22 +193,38 @@ class ExpensesManager(Manager):
         # '2026年4月': '202604'の形式の辞書を取得する
         self.sheet_name_dict = self._get_sheet_name_dict(start_year, start_month)
 
-    def get_database(self, sheet_name: str, reset_sheet_name=False):  # エクセルから入出金データを取得する（ex. sheet_name=202604）
+    def get_database(self, sheet_name: str, reset_sheet_name=False):
+        """家計簿スプレッドシートから指定月の入出金データをDataFrameで取得する。
+        一度取得したデータはcalled_worksheetsにキャッシュし、APIアクセス回数を削減する。
+        reset_sheet_name=Trueを指定するとキャッシュを破棄して再取得する。
+        シートが存在しない場合はNoneを返す。
+
+        Args:
+            sheet_name: 対象月のシート名（例: '202604'）
+            reset_sheet_name: Trueの場合、キャッシュを破棄して再取得する
+        Returns:
+            DataFrame or None
+        """
         if reset_sheet_name:
-            self.called_worksheets.pop(sheet_name)
+            self.called_worksheets.pop(sheet_name)  # キャッシュを破棄する
         if sheet_name in self.called_worksheets:
-            return self.called_worksheets[sheet_name]
+            return self.called_worksheets[sheet_name]  # キャッシュがあればそのまま返す
         else:
             try:
-                database_ws = self.database_ss.worksheet(sheet_name)  # なければここでエラーが起こる
-                df = pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)  # 取得できればDataFrameで返す
+                database_ws = self.database_ss.worksheet(sheet_name)  # シートが存在しない場合はここでエラー
+                df = pd.DataFrame(database_ws.get_all_values()[1:], columns=self.bank_columns)
             except gspread.WorksheetNotFound:
                 df = None  # シートが見つからなければNoneを返す
-            self.called_worksheets[sheet_name] = df
+            self.called_worksheets[sheet_name] = df  # 取得結果をキャッシュする
             return df
 
 
-    def decorate_df(self, sheet_name, edit_type=None, color=True):  # 見やすいデータフレームを取得する
+    def decorate_df(self, sheet_name, edit_type=None, color=True):
+        """アプリ表示用に整形したDataFrameを返す。
+        edit_typeを指定すると出金または入金のみに絞り込む。
+        colorをTrueにすると金額列に色付きスタイルを適用する（Streamlit表示用）。
+        データが存在しない場合はNoneを返す。
+        """
         df = self.get_database(sheet_name)
         decorated_df = df.copy()
         if edit_type == '出金':
@@ -187,7 +243,11 @@ class ExpensesManager(Manager):
         return decorated_df
 
 
-    def load_bank_csv(self, csv_file):  # 銀行の入出金データでエクセルを更新する
+    def load_bank_csv(self, csv_file):
+        """銀行の入出金明細CSVを読み込み、家計簿スプレッドシートを更新する。
+        目的別口座への振替（PURPOSE_ACCOUNT_PREFIX）が検出された場合は、
+        purpose_account_ssも合わせて更新する。
+        """
         bank_df = pd.read_csv(csv_file, encoding='shift-jis', dtype=str).fillna(0)
         expenses_dic = defaultdict(list)  # 入出金の情報を該当のシートごとに格納するdict
         purpose_account_dict = defaultdict(list)   # 目的別口座への入出金を口座名ごとに格納するdic
@@ -240,7 +300,13 @@ class ExpensesManager(Manager):
             self._update_purpose_account(purpose_account_dict)
 
 
-    def update_debit_contents(self, debit_csv_path):  # デビットカードの明細で入出金データを更新する
+    def update_debit_contents(self, debit_csv_path):
+        """デビットカードの明細CSVを使って、家計簿のデビット行の内容を更新する。
+        銀行CSVではデビット決済の内容が'デビット 43891'のように記録されるため、
+        カード明細の'お取引内容'で上書きして可読性を向上させる。
+        銀行とカードで記録日がズレることがあるため、DEBIT_GAP_DAYS以内の日付差を許容してマッチングする。
+        同じ金額の取引が複数ある場合は、日付が最も近いものから順にマッチングする。
+        """
         # まずはデビットカードの明細を取得し、同じ金額ごとに明細の情報（金額、内容）をまとめる
         debit_df = pd.read_csv(debit_csv_path, encoding='shift-jis', dtype=str).fillna(0)
         min_date, max_date = 99999999, 0  # 同じ取引でも銀行とカードの日付はズレる -> 後でサーチする際の範囲を決める
@@ -292,12 +358,17 @@ class ExpensesManager(Manager):
                         df.loc[df_idx, '大分類'] = main_category
                         df.loc[df_idx, '小分類'] = sub_category
                         same_withdraw_debit_dict[withdraw].pop(idx)  # マッチしたものは候補から消去する
+                        break
 
         # シートごとにbatchで更新することで、効率が上がり、エラーを減らせる
         for sheet_name, update_batch in update_batches.items():
             self.database_ss.worksheet(sheet_name).batch_update(update_batch)
 
-    def update_categories(self, sheet_name, indexes, main ,sub, edit_type):
+    def update_categories(self, sheet_name, indexes, main, sub, edit_type):
+        """指定した行のカテゴリを変更し、スプレッドシートとcategoriesを同時に更新する。
+        変更前のカテゴリの候補リストから該当contentを削除し、新しいカテゴリに追加する。
+        デビット行はカード明細の内容に変更される前のため、カテゴリ候補の更新対象外とする。
+        """
         df = self.get_database(sheet_name)
         current_categories = self._get_categories_from_edit_type(edit_type)
         batch = []
@@ -325,7 +396,11 @@ class ExpensesManager(Manager):
         self.upload_categories()  # 更新したcategoriesで大元のエクセルを更新する
 
 
-    def upload_categories(self, sheet_name='sheet1'):  # カテゴリーをまとめたエクセルを更新する
+    def upload_categories(self, sheet_name='sheet1'):
+        """メモリ上のcategoriesをGoogleスプレッドシートへ書き戻す。
+        列ごとに大分類・小分類・候補キーワードの順で格納する。
+        update_categoriesの後に必ず呼ばれ、永続化を保証する。
+        """
         items = [(self.cost_categories, self.cost_categories_ss),
                  (self.income_categories, self.income_categories_ss)]
         for categories, spread_sheet in items:
@@ -347,7 +422,10 @@ class ExpensesManager(Manager):
 
 
     def get_repr_category_dict(self, edit_type=None):
-        """categoryを見やすくして返す。edit_typeは入金または出金で指定する。"""
+        """UIのselectbox用に、カテゴリを'大分類/小分類'形式の文字列をkeyとした辞書で返す。
+        大分類と小分類が同じ場合は大分類名のみを表示する。
+        edit_typeで入金・出金を絞り込む。
+        """
 
         current_categories = self._get_categories_from_edit_type(edit_type)
         repr_category_dict = {}
@@ -363,6 +441,10 @@ class ExpensesManager(Manager):
 
     @Manager.figure_decorator
     def make_main_pie(self, sheet_name, mode):
+        """指定月・指定方向（入金/出金）の大分類別円グラフを作成する。
+        金額の多い順に並べ、中央に合計金額を表示するドーナツグラフ形式。
+        データがない場合はNoneを返す。
+        """
         df = self.get_database(sheet_name)
         if df is None:
             return None
@@ -395,6 +477,11 @@ class ExpensesManager(Manager):
     @Manager.figure_decorator
     def make_sub_category_trend_plot(self, main_category, is_ratio_display,
                                      cut_off_value=3000, cut_off_ratio=5):
+        """指定した大分類の小分類別推移を積み上げ棒グラフで作成する。
+        is_ratio_display=Trueの場合は金額ではなく割合（%）で表示する。
+        cut_off_value/cut_off_ratioより小さい値のラベルは非表示にして視認性を確保する。
+        データがない場合はNoneを返す。
+        """
         # 全てのシートのデータを結合
         df_list = []
         for repr_name, sheet_name in self.sheet_name_dict.items():
@@ -475,15 +562,19 @@ class ExpensesManager(Manager):
 
     @Manager.figure_decorator
     def make_purpose_account_plots(self):
-        """目的別口座ごとの残高推移グラフを作成し、{口座名: figure}の辞書を返す"""
+        """目的別口座ごとの残高推移折れ線グラフを作成し、{口座名: figure}の辞書を返す。
+        purpose_account_ssの全タブを動的に読み込むため、口座の追加・削除が自動で反映される。
+        残高は入金 - 出金の累積和として0起点で計算する。
+        データが空のタブはスキップする。
+        """
         plot_dict = {}
         for ws in self.purpose_account_ss.worksheets():
             account_name = ws.title
             rows = ws.get_all_values()
-            if len(rows) <= 1:  # ヘッダーのみ or 空の場合はスキップ
+            df = pd.DataFrame(rows[1:], columns=self.purpose_account_columns)
+            if df.empty:
                 continue
 
-            df = pd.DataFrame(rows[1:], columns=self.purpose_account_columns)
             df['年月日'] = pd.to_datetime(df['年月日'], format='%Y%m%d')
             df['入金金額'] = df['入金金額'].astype(int)
             df['出金金額'] = df['出金金額'].astype(int)
@@ -510,6 +601,10 @@ class ExpensesManager(Manager):
 
     @Manager.figure_decorator
     def make_main_account_plot(self):
+        """代表口座（銀行口座）の残高推移折れ線グラフを作成する。
+        全月のデータを結合して時系列で表示する。
+        データがない場合はNoneを返す。
+        """
         df_list = []
         for sheet_name in self.sheet_name_dict.values():
             df = self.get_database(sheet_name)
@@ -518,11 +613,14 @@ class ExpensesManager(Manager):
                 df['年月日'] = df.apply(lambda x: datetime.strptime(sheet_name+x['日'], '%Y%m%d'), axis=1)
                 df['残高'] = df['残高'].astype(int)
                 df_list.append(df[['年月日', '残高']])
-        main_account_df = pd.concat(df_list)
 
+        if not df_list:
+            return None
+
+        main_account_df = pd.concat(df_list)
         fig, ax = plt.subplots()
-        ax.set_title('残高の推移', fontsize=13, pad=15)
         ax.plot(main_account_df['年月日'], main_account_df['残高'])
+        ax.set_title('残高の推移', fontsize=13, pad=15)
         ax.set_xlabel('日付')
         ax.set_ylabel('金額 (円)')
         ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
@@ -532,68 +630,74 @@ class ExpensesManager(Manager):
 
 
     def process_lend_clearance(self, lend_df, user_name):
-            """立替データをそれぞれの年月日の家計簿シートへ自動で振り分けて同期・補正する"""
-            if lend_df.empty:
-                return
+        """立替データを家計簿シートへ反映し、収支を補正する。
+        立替の精算時に呼ばれ、以下の2つのレコードを家計簿に追加する:
+            - 支出補正: 立替した支出を元の大分類・小分類で計上する
+            - 収入補正: 立替分を給料からの控除として入金に計上する
+        立替データは年月日ごとに該当月のシートへ振り分けて書き込む。
+        """
+        if lend_df.empty:
+            return
 
-            # 1. 立替データを書き込み先の sheet_name ごとにグループ化する
-            # 例: {'202604': [rows...], '202605': [rows...]}
-            sheet_batches = defaultdict(list)
+        # 1. 立替データを書き込み先の sheet_name ごとにグループ化する
+        # 例: {'202604': [rows...], '202605': [rows...]}
+        sheet_batches = defaultdict(list)
 
-            for _, row in lend_df.iterrows():
-                date_str = row['年月日']
-                sheet_name = date_str[:6]  # '202605' を抽出
-                day = date_str[6:]         # '03' を抽出
-                content = row['内容']
-                withdraw = row['出金金額']
-                main_cat = row['大分類']
-                sub_cat = row['小分類']
+        for _, row in lend_df.iterrows():
+            date_str = row['年月日']
+            sheet_name = date_str[:6]  # '202605' を抽出
+            day = date_str[6:]         # '03' を抽出
+            content = row['内容']
+            withdraw = row['出金金額']
+            main_cat = row['大分類']
+            sub_cat = row['小分類']
 
-                # 支出補正レコード
-                sheet_batches[sheet_name].append([
-                    day, f"[立替精算] {content}", '0', withdraw, '0', '0', main_cat, sub_cat
-                ])
-                # 収入補正レコード
-                sheet_batches[sheet_name].append([
-                    day, f"[立替精算] 給料控除", '0', '0', withdraw, '0', '給料', user_name
-                ])
+            # 支出補正レコード
+            sheet_batches[sheet_name].append([
+                day, f"[立替精算] {content}", '0', withdraw, '0', '0', main_cat, sub_cat
+            ])
+            # 収入補正レコード
+            sheet_batches[sheet_name].append([
+                day, f"[立替精算] 給料控除", '0', '0', withdraw, '0', '給料', user_name
+            ])
 
-            # 2. グループ化したシートごとにスプレッドシートを更新
-            for sheet_name, new_rows in sheet_batches.items():
-                df = self.get_database(sheet_name)
+        # 2. グループ化したシートごとにスプレッドシートを更新
+        for sheet_name, new_rows in sheet_batches.items():
+            df = self.get_database(sheet_name)
 
-                # シートが存在しない場合は、空のベースを作る
-                if df is None:
-                    df = pd.DataFrame(columns=self.bank_columns)
+            # シートが存在しない場合は、空のベースを作る
+            if df is None:
+                df = pd.DataFrame(columns=self.bank_columns)
 
-                # 残高の不整合を防ぐため、そのシートの最新の残高を取得
-                last_balance = df['残高'].iloc[0] if not df.empty else '0'
+            # 残高の不整合を防ぐため、そのシートの最新の残高を取得
+            last_balance = df['残高'].iloc[0] if not df.empty else '0'
 
-                # 今回追加する行の「残高」欄を最新残高で埋める
-                for row in new_rows:
-                    row[self.bank_columns.index('残高')] = last_balance
+            # 今回追加する行の「残高」欄を最新残高で埋める
+            for row in new_rows:
+                row[self.bank_columns.index('残高')] = last_balance
 
-                # 既存データと結合してアップデート
-                post_df = pd.DataFrame(new_rows, columns=self.bank_columns)
-                new_df = pd.concat([df, post_df], ignore_index=True)
-                new_df = new_df.sort_values('日', ascending=True, key=lambda x: x.astype(int))
+            # 既存データと結合してアップデート
+            post_df = pd.DataFrame(new_rows, columns=self.bank_columns)
+            new_df = pd.concat([df, post_df], ignore_index=True)
+            new_df = new_df.sort_values('日', ascending=True, key=lambda x: x.astype(int))
 
-                values = self.df_to_matrix(new_df)
+            # もしシートが全く存在していなければ新規作成
+            try:
+                ws = self.database_ss.worksheet(sheet_name)
+            except gspread.WorksheetNotFound:
+                ws = self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)
 
-                # もしシートが全く存在していなければ新規作成
-                try:
-                    ws = self.database_ss.worksheet(sheet_name)
-                except gspread.WorksheetNotFound:
-                    ws = self.database_ss.add_worksheet(sheet_name, rows=5000, cols=26)
-                    values = [self.bank_columns] + new_rows  # 新規の時はヘッダーを付ける
+            values = self.df_to_matrix(new_df)
+            self.full_update(ws, values)
 
-                self.full_update(ws, values)
-
-                # キャッシュをリセット
-                self.get_database(sheet_name, reset_sheet_name=True)
+            # キャッシュをリセット
+            self.get_database(sheet_name, reset_sheet_name=True)
 
 
     def _get_sheet_name_dict(self, start_year, start_month):
+        """アプリ開始月から現在月までの'2026年4月': '202604'形式の辞書を生成する。
+        年をまたぐ場合にも対応している。
+        """
         now = datetime.now()
         now_year, now_month = now.year, now.month
         sheet_name_dict = {}  # '2026年4月': '202604'の形式で保存する
@@ -618,7 +722,10 @@ class ExpensesManager(Manager):
 
 
     def _update_purpose_account(self, purpose_account_dic):
-        """目的別口座への入出金をスプレッドシートの該当タブへ書き込む"""
+        """目的別口座への入出金データをスプレッドシートへ書き込む。
+        口座名に対応するタブが存在しない場合は自動で新規作成する。
+        既存データと結合し、重複を除外してから日付順で書き戻す。
+        """
         for account_name, new_rows in purpose_account_dic.items():
             try:
                 ws = self.purpose_account_ss.worksheet(account_name)
@@ -634,12 +741,15 @@ class ExpensesManager(Manager):
             self.full_update(ws, self.df_to_matrix(new_df))
 
 
-    def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:  # エクセルからdictに成形して返す
+    def _get_categories(self, spread_sheet, sheet_name='sheet1') -> dict:
+        """カテゴリスプレッドシートを読み込み、{大分類: {小分類: [候補キーワード]}}形式の辞書を返す。
+        スプレッドシートは列単位で管理されており、1列目はヘッダー行のため読み飛ばす。
+        候補キーワードは空セルが出現した時点で読み込みを終了する。
+        """
         categories = defaultdict(dict)
         work_sheet = spread_sheet.worksheet(sheet_name)
-        # work_sheet = getattr(spread_sheet, sheet_name)
-        all_values = work_sheet.get_all_values()  # エクセルの全てのセルを取得
-        for row in np.array(all_values).T[1:]:
+        all_values = work_sheet.get_all_values()
+        for row in np.array(all_values).T[1:]:  # 転置して列を行として処理する
             main = row[0]
             sub = row[1]
             candidates = []
@@ -647,12 +757,15 @@ class ExpensesManager(Manager):
                 if candidate:
                     candidates.append(candidate)
                 else:
-                    break
+                    break  # 空セルで候補リストの終端と判断する
             categories[main][sub] = candidates
         return categories
 
 
     def _integrate_categories(self):
+        """入金カテゴリと出金カテゴリを一つの辞書に統合して返す。
+        _identify_categoryで入出金両方を横断的に検索するために使用する。
+        """
         return dict(**self.income_categories, **self.cost_categories)
 
 
@@ -679,7 +792,10 @@ class ExpensesManager(Manager):
 
 
 class LendManager(Manager):
-    """建替えを管理するためのクラス"""
+    """個人の立替を管理するクラス。
+    立替を有する個人がそれぞれがインスタンスを持ち、別々のスプレッドシートで管理する。
+    permissionフラグにより、自分の立替のみ編集・精算が可能で、相手の立替は閲覧のみ。
+    """
 
     def __init__(self, name, url, permission=False, lend_columns=LEND_COLUMNS, **kwargs):
         # 親クラスの初期化
@@ -695,6 +811,9 @@ class LendManager(Manager):
 
 
     def add_lend(self, lend_date, content, payment, main, sub):
+        """立替データを1件追加し、スプレッドシートへ書き込む。
+        追加後は日付順にソートし、cost_sumを再計算する。
+        """
         lend_date = lend_date.strftime('%Y%m%d')
         payment = str(payment)
         new_idx = len(self.lend_df)
@@ -706,13 +825,19 @@ class LendManager(Manager):
         self.cost_sum = self._calc_cost_sum(self.lend_df)
 
     def full_override(self, df):
+        """立替データを指定のDataFrameで全て上書きする。
+        消去モードでの削除操作時に使用する。
+        """
         self.lend_df = df
         values = self.df_to_matrix(df)
         self.full_update(self.lend_ws, values)
         self.cost_sum = self._calc_cost_sum(self.lend_df)
 
 
-    def get_decorated_df(self):  # 見やすいデータフレームを取得する
+    def get_decorated_df(self):
+        """アプリ表示用に整形した立替DataFrameを返す。
+        年月日を'4月3日'形式に変換し、金額をカンマ区切りで表示する。
+        """
         decorated_df = self.lend_df.copy()
         if decorated_df.empty:
             return decorated_df
@@ -735,18 +860,23 @@ class LendManager(Manager):
 
 
     def _get_work_sheet(self, url, sheet_name='sheet1'):
+        """立替スプレッドシートのワークシートを取得する。
+        シートが見つからない場合は、ユーザーに修正を促すエラーを発生させる。
+        """
         try:
             lend_ss = self.get_spread_sheet(url)
-            return lend_ss.worksheet(sheet_name)  # sheet_nameがなければここでエラーが起こる
+            return lend_ss.worksheet(sheet_name)
         except gspread.WorksheetNotFound:
             raise ValueError(f'{self.name}のワークシート名を{sheet_name}に変更して下さい。（{url}）')
 
 
     def _get_lend_df(self):
+        """スプレッドシートから立替データを読み込み、DataFrameで返す。"""
         return pd.DataFrame(self.lend_ws.get_all_values()[1:], columns=self.lend_columns)
 
 
     def _calc_cost_sum(self, df):
+        """立替データの出金金額の合計を計算する。dfがNoneの場合はNoneを返す。"""
         if df is None:
             return None
         else:
