@@ -9,6 +9,8 @@
     https://biz.moneyforward.com/work-efficiency/basic/21627/#PythonGoogle
 
 written by Kohei Yoshida, 2026/06/09
+TODO: 代表口座の推移をよりスムーズに、clearanceを変更する
+TODO: 大分類別の推移にそれぞれのカテゴリのやつを追加する。
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -514,7 +516,7 @@ class ExpensesManager(Manager):
         if trend_df.empty:
             return None
 
-        # 💡 ラジオボタンが「割合（%）」だった場合、データを100%ベースに変換する
+        # ラジオボタンが「割合（%）」だった場合、データを100%ベースに変換する
         if is_ratio_display:
             # 各行（月）の合計値で、各要素を割る（行ごとの合計が1.0になるようにする）
             row_sums = trend_df.sum(axis=1)
@@ -524,7 +526,7 @@ class ExpensesManager(Manager):
         fig, ax = plt.subplots()
         trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
 
-        # 💡 シンプルに書き換えたブロック内テキスト表示ロジック
+        # シンプルに書き換えたブロック内テキスト表示ロジック
         cut_off = cut_off_ratio if is_ratio_display else cut_off_value
         for c in ax.containers:
             # すべての数値をそのままフォーマット変換してラベルにする
@@ -536,6 +538,13 @@ class ExpensesManager(Manager):
             ]
             # 各ブロックの中央に文字を配置
             ax.bar_label(c, labels=labels, label_type='center', fontsize=9, color='black', weight='bold')
+
+        # is_ratio_display=Falseの時のみ、棒グラフの上に月ごとの合計金額を表示する
+        if not is_ratio_display:
+            col_sums = trend_df.sum(axis=1)
+            for i, (month, total) in enumerate(col_sums.items()):
+                ax.text(i, total, f'{int(total):,}', ha='center', va='bottom',
+                        fontsize=9, fontweight='bold')
 
         # タイトルと軸ラベルの設定
         title = '比率の推移' if is_ratio_display else '金額の推移'
