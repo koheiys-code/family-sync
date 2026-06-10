@@ -620,13 +620,15 @@ class ExpensesManager(Manager):
             if df is not None:
                 df = df[['日', '残高']].copy()
                 df['年月日'] = df.apply(lambda x: datetime.strptime(sheet_name+x['日'], '%Y%m%d'), axis=1)
-                df['残高'] = df['残高'].astype(int)
+                df['残高'] = pd.to_numeric(df['残高'], errors='coerce')  # 空文字をNaNに変換
                 df_list.append(df[['年月日', '残高']])
 
         if not df_list:
             return None
 
         main_account_df = pd.concat(df_list)
+        main_account_df['残高'] = main_account_df['残高'].ffill().dropna().astype(int)
+
         fig, ax = plt.subplots()
         ax.plot(main_account_df['年月日'], main_account_df['残高'])
         ax.set_title('残高の推移', fontsize=13, pad=15)
@@ -678,12 +680,9 @@ class ExpensesManager(Manager):
             if df is None:
                 df = pd.DataFrame(columns=self.bank_columns)
 
-            # 残高の不整合を防ぐため、そのシートの最新の残高を取得
-            last_balance = df['残高'].iloc[0] if not df.empty else '0'
-
-            # 今回追加する行の「残高」欄を最新残高で埋める
+            # 残高欄は空文字にする（精算レコードは残高に影響しないため）
             for row in new_rows:
-                row[self.bank_columns.index('残高')] = last_balance
+                row[self.bank_columns.index('残高')] = ''
 
             # 既存データと結合してアップデート
             post_df = pd.DataFrame(new_rows, columns=self.bank_columns)

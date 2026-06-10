@@ -265,7 +265,7 @@ elif st.session_state['authentication_status']:
             st.pyplot(trend_plot)
 
             # 選択した年月・大分類の小分類ごとの明細を表示する
-            repr_name = st.selectbox('明細を表示する月を選択', options, index=default_idx)
+            repr_name = st.selectbox('', options, index=default_idx)
             sheet_name = EM.sheet_name_dict[repr_name]
             detail_df = EM.get_database(sheet_name)
             if detail_df is None or detail_df.empty:
