@@ -272,14 +272,17 @@ elif st.session_state['authentication_status']:
                 st.info(f'集計可能な履歴がありません。')
             else:
                 detail_df = detail_df[detail_df['大分類'] == selected_main_cat].copy()
-                # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
-                detail_df['金額'] = detail_df.apply(
-                    lambda x: int(x['出金金額']) if x['出金金額'] != '0' else int(x['入金金額']), axis=1)
-                # 小分類ごとにサブヘッダー＋表を表示する
-                for sub_cat, sub_df in detail_df.groupby('小分類'):
-                    st.markdown(f'###### {sub_cat}')
-                    display_df = sub_df[['日', '内容', '金額']].reset_index(drop=True)
-                    st.dataframe(display_df, hide_index=True, height=200)
+                if detail_df.empty:
+                    st.info(f'集計可能な履歴がありません。')
+                else:
+                    # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
+                    detail_df['金額'] = detail_df.apply(
+                        lambda x: int(x['出金金額']) if x['出金金額'] != '0' else int(x['入金金額']), axis=1)
+                    # 小分類ごとにサブヘッダー＋表を表示する
+                    for sub_cat, sub_df in detail_df.groupby('小分類'):
+                        st.markdown(f'###### {sub_cat}')
+                        display_df = sub_df[['日', '内容', '金額']].reset_index(drop=True)
+                        st.dataframe(display_df, hide_index=True, height=200)
 
         st.write('---')
         st.subheader('🏦 目的別口座の残高推移')
