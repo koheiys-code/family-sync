@@ -86,7 +86,7 @@ def apply_edits(expense_manager, sheet_name, edited_df, edit_type):
     """チェックした行のカテゴリを一括変更するダイアログ。"""
     repr_category_dict = expense_manager.get_repr_category_dict(edit_type)
     options = repr_category_dict.keys()
-    repr_category = st.selectbox('', options)
+    repr_category = st.selectbox('', options, key='edit_cat_options')
     edited_rows = edited_df[edited_df['編集']==True]
     st.dataframe(edited_rows, hide_index=True)
     category_info = repr_category_dict[repr_category]
@@ -109,7 +109,7 @@ def add_lend(lend_manager, expense_manager):
     payment = st.number_input('金額', min_value=0, value=0, step=1)
     repr_category_dict = expense_manager.get_repr_category_dict('出金')
     options = repr_category_dict.keys()
-    repr_category = st.selectbox('分類', options)
+    repr_category = st.selectbox('分類', options, key='lend_cat_options')
     st.write(f'{name}は{repr_date}に{content}（{repr_category}）のために{payment:,}円を払いましたか？')
     if content and payment and st.button('確定'):
         category_info = repr_category_dict[repr_category]
@@ -237,7 +237,7 @@ elif st.session_state['authentication_status']:
 
     with fig_tab:
         st.subheader('🍕 月次内訳（円グラフ）')
-        repr_name = st.selectbox('', options, index=default_idx, key='fig_options')
+        repr_name = st.selectbox('', options, index=default_idx, key='pie_options')
         sheet_name = EM.sheet_name_dict[repr_name]
         cost_main_pie = EM.make_main_pie(sheet_name, '出金')
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
@@ -255,17 +255,17 @@ elif st.session_state['authentication_status']:
         st.write('---')
         st.subheader('🔍 大分類別の推移')
         main_categories = list(EM.categories.keys())
-        selected_main_cat = st.selectbox('', main_categories)
+        selected_main_cat = st.selectbox('', main_categories, key='main_cat_options')
         plot_type = st.radio('', ['金額', '割合'], horizontal=True)
         is_ratio_display = (plot_type == '割合')
-        trend_plot = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
+        trend_plot, sub_cat_order = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
         if trend_plot is None:
             st.info(f'集計可能な履歴がありません。')
         else:
             st.pyplot(trend_plot)
 
             # 選択した年月・大分類の小分類ごとの明細を表示する
-            repr_name = st.selectbox('', options, index=default_idx)
+            repr_name = st.selectbox('', options, index=default_idx, key='trend_month_options')
             sheet_name = EM.sheet_name_dict[repr_name]
             detail_df = EM.get_database(sheet_name)
             if detail_df is None or detail_df.empty:
@@ -278,11 +278,17 @@ elif st.session_state['authentication_status']:
                     # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
                     detail_df['金額'] = detail_df.apply(
                         lambda x: int(x['出金金額']) if x['出金金額'] != '0' else int(x['入金金額']), axis=1)
+                    # 凡例と同じ順番で小分類を表示する。順番情報がない場合はデフォルト順
+                    order = sub_cat_order if sub_cat_order else detail_df['小分類'].unique()
                     # 小分類ごとにサブヘッダー＋表を表示する
-                    for sub_cat, sub_df in detail_df.groupby('小分類'):
+                    for sub_cat in order:
+                        sub_df = detail_df[detail_df['小分類'] == sub_cat]
+                        if sub_df.empty:
+                            continue
                         st.markdown(f'###### {sub_cat}')
-                        display_df = sub_df[['日', '内容', '金額']].reset_index(drop=True)
-                        st.dataframe(display_df, hide_index=True, height=200)
+                        sub_df = sub_df[['日', '内容', '金額']]
+                        height = min(35 * len(sub_df) + 38, 200)
+                        st.dataframe(sub_df, hide_index=True, height=height)
 
         st.write('---')
         st.subheader('🏦 目的別口座の残高推移')

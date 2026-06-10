@@ -482,7 +482,8 @@ class ExpensesManager(Manager):
         """指定した大分類の小分類別推移を積み上げ棒グラフで作成する。
         is_ratio_display=Trueの場合は金額ではなく割合（%）で表示する。
         cut_off_value/cut_off_ratioより小さい値のラベルは非表示にして視認性を確保する。
-        データがない場合はNoneを返す。
+        戻り値はfigureと凡例と同じ順番の小分類リストのタプル。
+        データがない場合は(None, [])を返す。
         """
         # 全てのシートのデータを結合
         df_list = []
@@ -497,7 +498,7 @@ class ExpensesManager(Manager):
                     df_list.append(df)
 
         if not df_list:
-            return None
+            return None, []
 
         combined_df = pd.concat(df_list, ignore_index=True)
 
@@ -514,7 +515,7 @@ class ExpensesManager(Manager):
         trend_df = trend_df.reindex(month_order).dropna(how='all')
 
         if trend_df.empty:
-            return None
+            return None, []
 
         # ラジオボタンが「割合（%）」だった場合、データを100%ベースに変換する
         if is_ratio_display:
@@ -566,7 +567,7 @@ class ExpensesManager(Manager):
             ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'{int(x)}%'))
             ax.set_ylim(0, 100) # 割合のときは0〜100%に固定
 
-        return fig
+        return fig, list(trend_df.columns[::-1])
 
 
     @Manager.figure_decorator
