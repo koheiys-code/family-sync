@@ -268,6 +268,8 @@ elif st.session_state['authentication_status']:
             repr_name = st.selectbox('明細を表示する月を選択', options, index=default_idx)
             sheet_name = EM.sheet_name_dict[repr_name]
             detail_df = EM.get_database(sheet_name)
+            if detail_df is None or detail_df.emplty:
+                st.info(f'集計可能な履歴がありません。')
             if detail_df is not None and not detail_df.empty:
                 detail_df = detail_df[detail_df['大分類'] == selected_main_cat].copy()
                 # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
