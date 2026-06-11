@@ -21,6 +21,13 @@ from yaml.loader import SafeLoader
 import finance_manager
 
 
+# ページのアイコンを設定
+st.set_page_config(
+    page_title="family-sync",
+    page_icon="assets/icon.png",
+)
+
+
 # 認証設定ファイルのパス
 CONFIG_YAML_PATH = "config.yaml"
 
@@ -243,13 +250,13 @@ elif st.session_state['authentication_status']:
         income_main_pie = EM.make_main_pie(sheet_name, '入金')
         left, right = st.columns(2)
         with left:
-            st.markdown('###### 出金金額')
+            st.markdown('###### 出金')
             if cost_main_pie is not None:
                 st.pyplot(cost_main_pie)
             else:
                 st.info('集計可能な履歴がありません。')
         with right:
-            st.markdown('###### 入金金額')
+            st.markdown('###### 入金')
             if income_main_pie is not None:
                 st.pyplot(income_main_pie)
             else:
@@ -294,7 +301,7 @@ elif st.session_state['authentication_status']:
                         st.dataframe(sub_df, hide_index=True, height=height)
 
         st.write('---')
-        st.subheader('🏦 目的別口座の残高推移')
+        st.subheader('🏦 目的別口座の推移')
         purpose_account_plots = EM.make_purpose_account_plots()
         if not purpose_account_plots:
             st.info('目的別口座のデータがありません。')

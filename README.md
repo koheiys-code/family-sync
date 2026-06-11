@@ -97,8 +97,11 @@ SpreadSheetOperator         # Google Sheets の基本操作（認証・読み書
 ├── create_yaml.py          # パスワードのハッシュ化・config.yaml生成スクリプト
 ├── config.yaml             # ハッシュ化済みパスワードを含む認証設定（公開可）
 ├── requirements.txt        # 依存ライブラリ
+├── assets/
+│   └── icon.png            # アプリアイコン画像
 ├── user_info.csv           # 平文パスワードを記載したCSV（非公開・.gitignore推奨）
 └── .streamlit/
+    ├── config.toml         # Streamlitの表示設定
     └── secrets.toml        # Google認証情報・スプレッドシートURL（非公開）
 ```
 
