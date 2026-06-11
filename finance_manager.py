@@ -452,7 +452,7 @@ class ExpensesManager(Manager):
             return None
         else:
             df = df.copy()
-        mode = mode + '金額'
+        mode = mode + '金額'  # 入金 -> 入金金額
         df[mode] = df[mode].astype(int)
         df = df[[mode, '大分類', '小分類']]
         df = df[df[mode] != 0]
@@ -465,7 +465,6 @@ class ExpensesManager(Manager):
         total_value = sum(sizes)  # 合計金額を計算
 
         fig, ax = plt.subplots()
-        ax.set_title(mode, fontsize=13, pad=15)
         ax.pie(sizes, labels=labels, autopct=lambda x: f'{x * sum(sizes) / 100:,.0f}',
             counterclock=False, startangle=90,
             wedgeprops=dict(width=0.7, edgecolor='white'),
