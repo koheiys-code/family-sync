@@ -290,6 +290,7 @@ class ExpensesManager(Manager):
                 post_df = pd.DataFrame(values, columns=self.bank_columns)
                 new_df = pd.concat([pre_df, post_df], ignore_index=True)  # 元データと新データを統合
                 new_df = new_df.drop_duplicates(subset=['日', '出金金額', '入金金額','残高'])  # 同じ取引を削除
+                new_df = new_df.sort_values('日', ascending=True, key=lambda x: x.astype(int))
                 values = self.df_to_matrix(new_df)  # エクセル用に成形
             else:
                 values = [self.bank_columns] + values
