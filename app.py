@@ -358,15 +358,24 @@ elif st.session_state['authentication_status']:
         with st.form('利用履歴更新フォーム', clear_on_submit=True):
             files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
             if st.form_submit_button('実行'):
+                bank_csv_list = []
+                debit_csv_list = []
+                unknown_list = []
                 for file in files:
                     # ファイル名の先頭でCSVの種別を判定する
                     # nyushukinmeisai_*.csv -> 銀行の入出金明細
                     # meisai_*.csv -> デビットカードの利用明細
                     identifier = file.name.split('_')[0]
                     if identifier == 'nyushukinmeisai':
-                        EM.load_bank_csv(file)
+                        bank_csv_list.append(file)
                     elif identifier == 'meisai':
-                        EM.update_debit_contents(file)
+                        debit_csv_list.append(file)
                     else:
-                        st.write(f'読み込めませんでした。 {file.name}')
+                        unknown_list.append(file)
+                for file in bank_csv_list:
+                    EM.load_bank_csv(file)
+                for file in debit_csv_list:
+                    EM.update_debit_contents(file)
+                for file in unknown_list:
+                    st.info(f'読み込めませんでした。 {file.name}')
                 st.rerun()
