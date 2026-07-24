@@ -176,8 +176,7 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
                     st.success("家計簿への反映と立替データのクリアが完了しました！")
                     st.session_state.sub_job_count = 0  # 副業枠のカウントもリセット
                     st.rerun()
-        else:
-            st.info("立替金額が0円のため、家計簿への精算処理は不要です。")
+
 
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
