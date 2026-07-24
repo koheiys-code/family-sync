@@ -166,16 +166,16 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
         st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
-        st.warning("※銀行への入金を行った後、以下のボタンを押すと家計簿に立替が反映され、立替リストがクリアされます。")
-        # lend_manager.lend_dfを使用して、expense_managerに反映させる。
 
         if cost_sum > 0:
-            if st.button('精算を確定して家計簿に反映'):
-                expense_manager.process_lend_clearance(lend_manager.lend_df, lend_manager.name)
-                lend_manager.clear_lend_data()
-                st.success("家計簿への反映と立替データのクリアが完了しました！")
-                st.session_state.sub_job_count = 0  # 副業枠のカウントもリセット
-                st.rerun()
+            if st.checkbox(f"{int(monthly_payment):,}円 を共通口座に送金しましたか？"):
+                st.warning("※以下のボタンを押すと家計簿に立替が反映され、立替リストがクリアされます。")
+                if st.button('精算を確定'):
+                    expense_manager.process_lend_clearance(lend_manager.lend_df, lend_manager.name)
+                    lend_manager.clear_lend_data()
+                    st.success("家計簿への反映と立替データのクリアが完了しました！")
+                    st.session_state.sub_job_count = 0  # 副業枠のカウントもリセット
+                    st.rerun()
         else:
             st.info("立替金額が0円のため、家計簿への精算処理は不要です。")
 
