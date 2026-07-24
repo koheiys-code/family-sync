@@ -165,7 +165,7 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
     st.write(f'立替金額: {int(cost_sum):,}円')
     if salary_sum:
         monthly_payment = salary_sum * ratio - cost_sum
-        st.write(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
+        st.info(f'納入額: {int(monthly_payment):,}円 ( = {salary_sum:,} * {ratio} - {cost_sum:,})')
 
         if cost_sum > 0:
             if st.checkbox(f"{int(monthly_payment):,}円 を共通口座に送金しましたか？"):
