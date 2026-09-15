@@ -100,6 +100,8 @@ def initialize_session_state():
         st.session_state.shopping_df = None
     if "stock_df" not in st.session_state:
         st.session_state.stock_df = None
+    if "shopping_form_key" not in st.session_state:
+        st.session_state.shopping_form_key = 0
 
 
 @st.dialog('編集モード')
@@ -204,6 +206,11 @@ authenticator = stauth.Authenticate(
 # アプリ起動のタイミングでEMを作成してキャッシュ化しておく
 # ログイン前に実行することで、ログイン後の初回表示を高速化する
 EM = get_expenses_manager()
+
+# ItemsManagerの初期化（session_stateで保持してAPIアクセスを抑制する）
+if "IM" not in st.session_state:
+    st.session_state.IM = items_manager.ItemsManager(**ITEMS_MANAGER_PARAMS)
+IM = st.session_state.IM
 
 # ログイン画面の表示
 authenticator.login()
@@ -393,11 +400,6 @@ elif st.session_state['authentication_status']:
                         st.dataframe(decorate_df, hide_index=True)
 
     with shopping_tab:
-        # ItemsManagerの初期化（session_stateで保持してAPIアクセスを抑制する）
-        if "IM" not in st.session_state:
-            st.session_state.IM = items_manager.ItemsManager(**ITEMS_MANAGER_PARAMS)
-        IM = st.session_state.IM
-
         # 買い物リストの取得（session_stateにキャッシュ、操作後はリセット）
         if st.session_state.shopping_df is None:
             st.session_state.shopping_df = IM.get_shopping_df()
@@ -405,12 +407,13 @@ elif st.session_state['authentication_status']:
 
         # 新規追加フォーム
         with st.expander('追加'):
-            new_name = st.text_input('品名', key='new_shopping_name')
+            new_name = st.text_input('品名', key=f'new_shopping_name_{st.session_state.shopping_form_key}')
             new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
             new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
             if st.button('追加', key='add_shopping_btn'):
                 if new_name:
                     IM.add_shopping_item(new_name, new_category, new_is_stock)
+                    st.session_state.shopping_form_key += 1
                     st.session_state.shopping_df = None  # キャッシュをリセット
                     st.rerun()
                 else:
@@ -422,15 +425,12 @@ elif st.session_state['authentication_status']:
         else:
             purchase_date = st.date_input('購入日', key='purchase_date')
             selected_indexes = []
-            for category in items_manager.CATEGORIES:
-                cat_df = shopping_df[shopping_df['カテゴリ'] == category]
-                if cat_df.empty:
-                    continue
+            for category, cat_df in IM.each_category_df_generator(shopping_df):
                 st.markdown(f'###### {category}')
-                disabled_cols = [c for c in items_manager.SHOPPING_COLUMNS]
+                disabled_cols = cat_df.keys()
                 cat_df = cat_df.copy()
                 cat_df['購入済み'] = False
-                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
+                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=False,
                                         key=f'shopping_editor_{category}')
                 selected_indexes += list(edited[edited['購入済み'] == True].index)
 
