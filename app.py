@@ -47,7 +47,7 @@ EXPENSES_MANAGER_PARAMS = {
 
 # ItemsManagerの初期化パラメータ
 ITEMS_MANAGER_PARAMS = {
-    'ss_url': st.secrets["ITEMS_SS_URL"],
+    'ss_url': st.secrets["ITEMS_SS_URLS"]["ITEMS_SS_URL"],
     'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
 }
 
