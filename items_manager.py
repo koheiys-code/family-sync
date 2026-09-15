@@ -91,7 +91,7 @@ class ItemsManager:
         for category in self.categories:
             cat_df = df[df[self.category_column_name] == category].copy()
             if not cat_df.empty:
-                cat_df = cat_df.drop(self.category_column_name)
+                cat_df = cat_df.drop(self.category_column_name, axis=1)
                 yield category, cat_df
 
     def add_shopping_item(self, name, category, is_stock):
