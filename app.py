@@ -12,6 +12,8 @@ written by Kohei Yoshida, 2026/06/09
     - グラフタブ: 月次円グラフ・大分類推移・目的別口座残高・代表口座残高
     - 立替タブ: 個人の立替管理と精算
     - データ追加タブ: 銀行CSV・デビットCSVのアップロード
+    - 買い物タブ: 買い物リストの管理（追加・購入済み処理）
+    - ストックタブ: ストックリストの管理（消費・削除）
 """
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -19,6 +21,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 import finance_manager
+import items_manager
 
 
 # ページのアイコンを設定
@@ -41,6 +44,13 @@ EXPENSES_MANAGER_PARAMS = {
     'start_year': 2026,
     'start_month': 4,
 }
+
+# ItemsManagerの初期化パラメータ
+ITEMS_MANAGER_PARAMS = {
+    'ss_url': st.secrets["ITEMS_SS_URL"],
+    'service_account_info': st.secrets["GOOGLE_CREDENTIALS"],
+}
+
 # 立替スプレッドシートのURL辞書（キーはユーザー名）
 LEND_URL_DICT = st.secrets["LEND_URLS"]
 
@@ -86,6 +96,10 @@ def initialize_session_state():
     """
     if "sub_job_count" not in st.session_state:
         st.session_state.sub_job_count = 0
+    if "shopping_df" not in st.session_state:
+        st.session_state.shopping_df = None
+    if "stock_df" not in st.session_state:
+        st.session_state.stock_df = None
 
 
 @st.dialog('編集モード')
@@ -211,7 +225,7 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    expenses_tab, fig_tab, lend_tab, upload_tab = st.tabs(['家計簿', 'グラフ', '立替', 'データ追加'])
+    expenses_tab, fig_tab, lend_tab, shopping_tab, stock_tab = st.tabs(['家計簿', 'グラフ', '立替', '買い物', 'ストック'])
 
     options = EM.sheet_name_dict.keys()
     default_idx = len(EM.sheet_name_dict) - 1
@@ -240,6 +254,32 @@ elif st.session_state['authentication_status']:
                         apply_edits(EM, sheet_name, edited_df, edit_type)
         else:
             st.info('入出金データがありません。')
+
+        with st.expander('データ追加'):
+            with st.form('利用履歴更新フォーム', clear_on_submit=True):
+                files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
+                if st.form_submit_button('実行'):
+                    bank_csv_list = []
+                    debit_csv_list = []
+                    unknown_list = []
+                    for file in files:
+                        # ファイル名の先頭でCSVの種別を判定する
+                        # nyushukinmeisai_*.csv -> 銀行の入出金明細
+                        # meisai_*.csv -> デビットカードの利用明細
+                        identifier = file.name.split('_')[0]
+                        if identifier == 'nyushukinmeisai':
+                            bank_csv_list.append(file)
+                        elif identifier == 'meisai':
+                            debit_csv_list.append(file)
+                        else:
+                            unknown_list.append(file)
+                    for file in bank_csv_list:
+                        EM.load_bank_csv(file)
+                    for file in debit_csv_list:
+                        EM.update_debit_contents(file)
+                    for file in unknown_list:
+                        st.info(f'読み込めませんでした。 {file.name}')
+                    st.rerun()
 
     with fig_tab:
         st.subheader('🍕 月次内訳（円グラフ）')
@@ -352,29 +392,85 @@ elif st.session_state['authentication_status']:
                             add_lend(LM, EM)
                         st.dataframe(decorate_df, hide_index=True)
 
+    with shopping_tab:
+        # ItemsManagerの初期化（session_stateで保持してAPIアクセスを抑制する）
+        if "IM" not in st.session_state:
+            st.session_state.IM = items_manager.ItemsManager(**ITEMS_MANAGER_PARAMS)
+        IM = st.session_state.IM
 
-    with upload_tab:
-        with st.form('利用履歴更新フォーム', clear_on_submit=True):
-            files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
-            if st.form_submit_button('実行'):
-                bank_csv_list = []
-                debit_csv_list = []
-                unknown_list = []
-                for file in files:
-                    # ファイル名の先頭でCSVの種別を判定する
-                    # nyushukinmeisai_*.csv -> 銀行の入出金明細
-                    # meisai_*.csv -> デビットカードの利用明細
-                    identifier = file.name.split('_')[0]
-                    if identifier == 'nyushukinmeisai':
-                        bank_csv_list.append(file)
-                    elif identifier == 'meisai':
-                        debit_csv_list.append(file)
-                    else:
-                        unknown_list.append(file)
-                for file in bank_csv_list:
-                    EM.load_bank_csv(file)
-                for file in debit_csv_list:
-                    EM.update_debit_contents(file)
-                for file in unknown_list:
-                    st.info(f'読み込めませんでした。 {file.name}')
+        # 買い物リストの取得（session_stateにキャッシュ、操作後はリセット）
+        if st.session_state.shopping_df is None:
+            st.session_state.shopping_df = IM.get_shopping_df()
+        shopping_df = st.session_state.shopping_df
+
+        # 新規追加フォーム
+        with st.expander('追加'):
+            new_name = st.text_input('品名', key='new_shopping_name')
+            new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
+            new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
+            if st.button('追加', key='add_shopping_btn'):
+                if new_name:
+                    IM.add_shopping_item(new_name, new_category, new_is_stock)
+                    st.session_state.shopping_df = None  # キャッシュをリセット
+                    st.rerun()
+                else:
+                    st.warning('品名を入力してください。')
+
+        # 買い物リストの表示（カテゴリごと）
+        if shopping_df.empty:
+            st.info('買い物リストに項目がありません。')
+        else:
+            purchase_date = st.date_input('購入日', key='purchase_date')
+            selected_indexes = []
+            for category in items_manager.CATEGORIES:
+                cat_df = shopping_df[shopping_df['カテゴリ'] == category]
+                if cat_df.empty:
+                    continue
+                st.markdown(f'###### {category}')
+                disabled_cols = [c for c in items_manager.SHOPPING_COLUMNS]
+                cat_df = cat_df.copy()
+                cat_df['購入済み'] = False
+                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
+                                        key=f'shopping_editor_{category}')
+                selected_indexes += list(edited[edited['購入済み'] == True].index)
+
+            if selected_indexes and st.button('購入済みにする'):
+                IM.purchase_items(shopping_df, selected_indexes, purchase_date)
+                st.session_state.shopping_df = None  # キャッシュをリセット
+                st.session_state.stock_df = None     # ストックキャッシュもリセット
                 st.rerun()
+
+    with stock_tab:
+        # ストックリストの取得（session_stateにキャッシュ）
+        if st.session_state.stock_df is None:
+            st.session_state.stock_df = IM.get_stock_df()
+        stock_df = st.session_state.stock_df
+
+        if stock_df.empty:
+            st.info('ストックリストに項目がありません。')
+        else:
+            selected_stock_indexes = []
+            for category in items_manager.CATEGORIES:
+                cat_df = stock_df[stock_df['カテゴリ'] == category]
+                if cat_df.empty:
+                    continue
+                st.markdown(f'###### {category}')
+                disabled_cols = [c for c in items_manager.STOCK_COLUMNS]
+                cat_df = cat_df.copy()
+                cat_df['選択'] = False
+                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
+                                        key=f'stock_editor_{category}')
+                selected_stock_indexes += list(edited[edited['選択'] == True].index)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if selected_stock_indexes and st.button('消費済み（買い物リストへ戻す）'):
+                    IM.consume_stock_items(stock_df, selected_stock_indexes)
+                    st.session_state.stock_df = None    # キャッシュをリセット
+                    st.session_state.shopping_df = None # 買い物キャッシュもリセット
+                    st.rerun()
+            with col2:
+                if selected_stock_indexes and st.button('削除'):
+                    IM.delete_stock_items(stock_df, selected_stock_indexes)
+                    st.session_state.stock_df = None  # キャッシュをリセット
+                    st.rerun()

@@ -9,8 +9,6 @@
     https://biz.moneyforward.com/work-efficiency/basic/21627/#PythonGoogle
 
 written by Kohei Yoshida, 2026/06/09
-TODO: 代表口座の推移をよりスムーズに、clearanceを変更する
-TODO: 大分類別の推移にそれぞれのカテゴリのやつを追加する。
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
