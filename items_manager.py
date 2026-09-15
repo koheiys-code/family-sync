@@ -8,6 +8,8 @@
 
 written by Kohei Yoshida, 2026/09/15
 """
+from datetime import date
+
 import pandas as pd
 from google.oauth2.service_account import Credentials
 import gspread
@@ -105,7 +107,7 @@ class ItemsManager:
         ws = self.ss.worksheet(self.shopping_sheet_name)
         ws.append_row([name, category, str(is_stock)])
 
-    def purchase_items(self, shopping_df, selected_indexes, purchase_date):
+    def purchase_items(self, shopping_df, selected_indexes):
         """選択した品目を購入済みにする。
         ストック対象（is_stock=True）の品目はストックリストに追加する。
         ストック対象でない品目はそのまま削除する。
@@ -113,13 +115,12 @@ class ItemsManager:
         Args:
             shopping_df: 現在の買い物リストのDataFrame
             selected_indexes: 購入済みにする行のインデックスリスト
-            purchase_date: 購入日（datetime.date）
         """
         selected_df = shopping_df.loc[selected_indexes]
 
         # ストック対象の品目をストックリストに追加する
         stock_ws = self.ss.worksheet(self.stock_sheet_name)
-        date_str = purchase_date.strftime('%Y/%m/%d')
+        date_str = date.today().strftime('%Y/%m/%d')
         for _, row in selected_df.iterrows():
             if row['ストック'] == 'True':
                 stock_ws.append_row([row['品名'], row['カテゴリ'], date_str])

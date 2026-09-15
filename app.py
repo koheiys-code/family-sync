@@ -232,7 +232,7 @@ elif st.session_state['authentication_status']:
 
     st.title(':tada: family-sync')
 
-    expenses_tab, fig_tab, lend_tab, shopping_tab, stock_tab = st.tabs(['家計簿', 'グラフ', '立替', '買い物', 'ストック'])
+    expenses_tab, fig_tab, lend_tab, shopping_tab, stock_tab = st.tabs(['家計簿', 'グラフ', '立替', '買い物', 'ストック'], default='買い物')
 
     options = EM.sheet_name_dict.keys()
     default_idx = len(EM.sheet_name_dict) - 1
@@ -423,19 +423,19 @@ elif st.session_state['authentication_status']:
         if shopping_df.empty:
             st.info('買い物リストに項目がありません。')
         else:
-            purchase_date = st.date_input('購入日', key='purchase_date')
             selected_indexes = []
             for category, cat_df in IM.each_category_df_generator(shopping_df):
                 st.markdown(f'###### {category}')
                 disabled_cols = cat_df.keys()
                 cat_df = cat_df.copy()
                 cat_df['購入済み'] = False
-                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=False,
+                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
                                         key=f'shopping_editor_{category}')
                 selected_indexes += list(edited[edited['購入済み'] == True].index)
 
             if selected_indexes and st.button('購入済みにする'):
-                IM.purchase_items(shopping_df, selected_indexes, purchase_date)
+                selected_indexes += list(edited[edited['購入済み'] == True].index)
+                IM.purchase_items(shopping_df, selected_indexes)
                 st.session_state.shopping_df = None  # キャッシュをリセット
                 st.session_state.stock_df = None     # ストックキャッシュもリセット
                 st.rerun()
@@ -450,12 +450,9 @@ elif st.session_state['authentication_status']:
             st.info('ストックリストに項目がありません。')
         else:
             selected_stock_indexes = []
-            for category in items_manager.CATEGORIES:
-                cat_df = stock_df[stock_df['カテゴリ'] == category]
-                if cat_df.empty:
-                    continue
+            for category, cat_df in IM.each_category_df_generator(stock_df):
                 st.markdown(f'###### {category}')
-                disabled_cols = [c for c in items_manager.STOCK_COLUMNS]
+                disabled_cols = cat_df.keys()
                 cat_df = cat_df.copy()
                 cat_df['選択'] = False
                 edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
