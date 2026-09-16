@@ -125,7 +125,7 @@ class ItemsManager:
             index: 更新する行のインデックス
             new_value: 新しいストックフラグの値（True/False）
         """
-        shopping_df.at[index, self.stock_column_name] = STOCK_TRUE if new_value else STOCK_FALSE
+        shopping_df.at[index, STOCK_COLUMN_NAME] = STOCK_TRUE if new_value else STOCK_FALSE
         self._overwrite_shopping(shopping_df)
 
     def purchase_items(self, shopping_df, selected_indexes):
@@ -143,7 +143,7 @@ class ItemsManager:
         stock_ws = self.ss.worksheet(self.stock_sheet_name)
         date_str = date.today().strftime('%Y/%m/%d')
         for _, row in selected_df.iterrows():
-            if row['ストック'] == self.stock_true:
+            if row['ストック'] == STOCK_TRUE:
                 stock_ws.append_row([row[ITEM_COLUMN_NAME], row[CATEGORY_COLUMN_NAME], date_str])
 
         # 選択した品目を買い物リストから削除する
