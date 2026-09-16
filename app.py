@@ -200,6 +200,146 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
 
 
 @st.fragment
+def expenses_tab_content(EM, options, default_idx):
+    """家計簿タブの描画。
+    @st.fragmentにより、データ追加後のrerunがアプリ全体を再実行しない。
+    """
+    repr_name = st.selectbox('', options, index=default_idx, key='expenses_options')
+    sheet_name = EM.sheet_name_dict[repr_name]
+    df = EM.get_database(sheet_name)
+
+    if df is not None:
+        edit_mode = st.toggle('分類編集', key='edit_mode')
+        if not edit_mode:
+            decorated_df = EM.decorate_df(sheet_name, color=True)
+            st.dataframe(decorated_df, hide_index=True)
+        else:
+            edit_type = st.radio('', ['出金', '入金'])
+            editable_df = EM.decorate_df(sheet_name, edit_type=edit_type, color=False)
+            if editable_df is None:
+                st.write(f'{edit_type}データがありません。')
+            else:
+                disabled = editable_df.keys()
+                editable_df['編集'] = False
+                if st.checkbox('未分類のみ'):
+                    editable_df = editable_df[editable_df['分類']=='未分類']
+                edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
+                if st.button('編集'):
+                    apply_edits(EM, sheet_name, edited_df, edit_type)
+    else:
+        st.info('入出金データがありません。')
+
+    with st.expander('データ追加'):
+        with st.form('利用履歴更新フォーム', clear_on_submit=True):
+            files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
+            if st.form_submit_button('実行'):
+                bank_csv_list = []
+                debit_csv_list = []
+                unknown_list = []
+                for file in files:
+                    # ファイル名の先頭でCSVの種別を判定する
+                    # nyushukinmeisai_*.csv -> 銀行の入出金明細
+                    # meisai_*.csv -> デビットカードの利用明細
+                    identifier = file.name.split('_')[0]
+                    if identifier == 'nyushukinmeisai':
+                        bank_csv_list.append(file)
+                    elif identifier == 'meisai':
+                        debit_csv_list.append(file)
+                    else:
+                        unknown_list.append(file)
+                for file in bank_csv_list:
+                    EM.load_bank_csv(file)
+                for file in debit_csv_list:
+                    EM.update_debit_contents(file)
+                for file in unknown_list:
+                    st.info(f'読み込めませんでした。 {file.name}')
+                st.rerun()
+
+
+@st.fragment
+def fig_tab_content(EM, options, default_idx):
+    """グラフタブの描画。
+    @st.fragmentにより、selectboxの変更がアプリ全体を再実行しない。
+    """
+    st.subheader('🍕 月次内訳（円グラフ）')
+    repr_name = st.selectbox('', options, index=default_idx, key='pie_options')
+    sheet_name = EM.sheet_name_dict[repr_name]
+    cost_main_pie = EM.make_main_pie(sheet_name, '出金')
+    income_main_pie = EM.make_main_pie(sheet_name, '入金')
+    left, right = st.columns(2)
+    with left:
+        st.markdown('###### 出金金額')
+        if cost_main_pie is not None:
+            st.pyplot(cost_main_pie)
+        else:
+            st.info('集計可能な履歴がありません。')
+    with right:
+        st.markdown('###### 入金金額')
+        if income_main_pie is not None:
+            st.pyplot(income_main_pie)
+        else:
+            st.info('集計可能な履歴がありません。')
+
+    st.write('---')
+    st.subheader('🔍 大分類別の推移')
+    main_categories = list(EM.categories.keys())
+    selected_main_cat = st.selectbox('', main_categories, key='main_cat_options')
+    plot_type = st.radio('', ['金額', '割合'], horizontal=True)
+    is_ratio_display = (plot_type == '割合')
+    trend_plot, sub_cat_order = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
+    if trend_plot is None:
+        st.info(f'集計可能な履歴がありません。')
+    else:
+        st.pyplot(trend_plot)
+
+        # 選択した年月・大分類の小分類ごとの明細を表示する
+        repr_name = st.selectbox('', options, index=default_idx, key='trend_month_options')
+        sheet_name = EM.sheet_name_dict[repr_name]
+        detail_df = EM.get_database(sheet_name)
+        if detail_df is None or detail_df.empty:
+            st.info(f'集計可能な履歴がありません。')
+        else:
+            detail_df = detail_df[detail_df['大分類'] == selected_main_cat].copy()
+            if detail_df.empty:
+                st.info(f'集計可能な履歴がありません。')
+            else:
+                # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
+                detail_df['金額'] = detail_df.apply(
+                    lambda x: int(x['出金金額']) if x['出金金額'] != '0' else int(x['入金金額']), axis=1)
+                # 凡例と同じ順番で小分類を表示する。順番情報がない場合はデフォルト順
+                order = sub_cat_order if sub_cat_order else detail_df['小分類'].unique()
+                # 小分類ごとにサブヘッダー＋表を表示する
+                for sub_cat in order:
+                    sub_df = detail_df[detail_df['小分類'] == sub_cat]
+                    if sub_df.empty:
+                        continue
+                    st.markdown(f'###### {sub_cat}')
+                    sub_df = sub_df[['日', '内容', '金額']]
+                    height = min(35 * len(sub_df) + 38, 200)
+                    st.dataframe(sub_df, hide_index=True, height=height)
+
+    st.write('---')
+    st.subheader('🏦 目的別口座の推移')
+    purpose_account_plots = EM.make_purpose_account_plots()
+    if not purpose_account_plots:
+        st.info('目的別口座のデータがありません。')
+    else:
+        for account_name, fig in purpose_account_plots.items():
+            goal = PURPOSE_ACCOUNT_GOALS.get(account_name)
+            goal_text = f'（目標 {goal:,}円）' if goal else ''
+            st.markdown(f'##### {account_name}{goal_text}')
+            st.pyplot(fig)
+
+    st.write('---')
+    st.subheader('📈 代表口座の推移')
+    main_account_plot = EM.make_main_account_plot()
+    if main_account_plot is not None:
+        st.pyplot(main_account_plot)
+    else:
+        st.info(f'集計可能な履歴がありません。')
+
+
+@st.fragment
 def lend_tab_content(lend_managers_dict, EM):
     """立替タブの描画。
     @st.fragmentにより、タブ内のrerunがアプリ全体を再実行しない。
@@ -370,136 +510,12 @@ elif st.session_state['authentication_status']:
 
     options = EM.sheet_name_dict.keys()
     default_idx = len(EM.sheet_name_dict) - 1
+
     with expenses_tab:
-        repr_name = st.selectbox('', options, index=default_idx, key='expenses_options')
-        sheet_name = EM.sheet_name_dict[repr_name]
-        df = EM.get_database(sheet_name)
-
-        if df is not None:
-            edit_mode = st.toggle('分類編集', key='edit_mode')
-            if not edit_mode:
-                decorated_df = EM.decorate_df(sheet_name, color=True)
-                st.dataframe(decorated_df, hide_index=True)
-            else:
-                edit_type = st.radio('', ['出金', '入金'])
-                editable_df = EM.decorate_df(sheet_name, edit_type=edit_type, color=False)
-                if editable_df is None:
-                    st.write(f'{edit_type}データがありません。')
-                else:
-                    disabled = editable_df.keys()
-                    editable_df['編集'] = False
-                    if st.checkbox('未分類のみ'):
-                        editable_df = editable_df[editable_df['分類']=='未分類']
-                    edited_df = st.data_editor(editable_df, disabled=disabled, hide_index=True)
-                    if st.button('編集'):
-                        apply_edits(EM, sheet_name, edited_df, edit_type)
-        else:
-            st.info('入出金データがありません。')
-
-        with st.expander('データ追加'):
-            with st.form('利用履歴更新フォーム', clear_on_submit=True):
-                files = st.file_uploader('利用履歴をアップロード', type="csv", accept_multiple_files=True)
-                if st.form_submit_button('実行'):
-                    bank_csv_list = []
-                    debit_csv_list = []
-                    unknown_list = []
-                    for file in files:
-                        # ファイル名の先頭でCSVの種別を判定する
-                        # nyushukinmeisai_*.csv -> 銀行の入出金明細
-                        # meisai_*.csv -> デビットカードの利用明細
-                        identifier = file.name.split('_')[0]
-                        if identifier == 'nyushukinmeisai':
-                            bank_csv_list.append(file)
-                        elif identifier == 'meisai':
-                            debit_csv_list.append(file)
-                        else:
-                            unknown_list.append(file)
-                    for file in bank_csv_list:
-                        EM.load_bank_csv(file)
-                    for file in debit_csv_list:
-                        EM.update_debit_contents(file)
-                    for file in unknown_list:
-                        st.info(f'読み込めませんでした。 {file.name}')
-                    st.rerun()
+        expenses_tab_content(EM, options, default_idx)
 
     with fig_tab:
-        st.subheader('🍕 月次内訳（円グラフ）')
-        repr_name = st.selectbox('', options, index=default_idx, key='pie_options')
-        sheet_name = EM.sheet_name_dict[repr_name]
-        cost_main_pie = EM.make_main_pie(sheet_name, '出金')
-        income_main_pie = EM.make_main_pie(sheet_name, '入金')
-        left, right = st.columns(2)
-        with left:
-            st.markdown('###### 出金金額')
-            if cost_main_pie is not None:
-                st.pyplot(cost_main_pie)
-            else:
-                st.info('集計可能な履歴がありません。')
-        with right:
-            st.markdown('###### 入金金額')
-            if income_main_pie is not None:
-                st.pyplot(income_main_pie)
-            else:
-                st.info('集計可能な履歴がありません。')
-
-        st.write('---')
-        st.subheader('🔍 大分類別の推移')
-        main_categories = list(EM.categories.keys())
-        selected_main_cat = st.selectbox('', main_categories, key='main_cat_options')
-        plot_type = st.radio('', ['金額', '割合'], horizontal=True)
-        is_ratio_display = (plot_type == '割合')
-        trend_plot, sub_cat_order = EM.make_sub_category_trend_plot(selected_main_cat, is_ratio_display)
-        if trend_plot is None:
-            st.info(f'集計可能な履歴がありません。')
-        else:
-            st.pyplot(trend_plot)
-
-            # 選択した年月・大分類の小分類ごとの明細を表示する
-            repr_name = st.selectbox('', options, index=default_idx, key='trend_month_options')
-            sheet_name = EM.sheet_name_dict[repr_name]
-            detail_df = EM.get_database(sheet_name)
-            if detail_df is None or detail_df.empty:
-                st.info(f'集計可能な履歴がありません。')
-            else:
-                detail_df = detail_df[detail_df['大分類'] == selected_main_cat].copy()
-                if detail_df.empty:
-                    st.info(f'集計可能な履歴がありません。')
-                else:
-                    # 金額列を作成（出金金額・入金金額のどちらか0でない方を使用）
-                    detail_df['金額'] = detail_df.apply(
-                        lambda x: int(x['出金金額']) if x['出金金額'] != '0' else int(x['入金金額']), axis=1)
-                    # 凡例と同じ順番で小分類を表示する。順番情報がない場合はデフォルト順
-                    order = sub_cat_order if sub_cat_order else detail_df['小分類'].unique()
-                    # 小分類ごとにサブヘッダー＋表を表示する
-                    for sub_cat in order:
-                        sub_df = detail_df[detail_df['小分類'] == sub_cat]
-                        if sub_df.empty:
-                            continue
-                        st.markdown(f'###### {sub_cat}')
-                        sub_df = sub_df[['日', '内容', '金額']]
-                        height = min(35 * len(sub_df) + 38, 200)
-                        st.dataframe(sub_df, hide_index=True, height=height)
-
-        st.write('---')
-        st.subheader('🏦 目的別口座の推移')
-        purpose_account_plots = EM.make_purpose_account_plots()
-        if not purpose_account_plots:
-            st.info('目的別口座のデータがありません。')
-        else:
-            for account_name, fig in purpose_account_plots.items():
-                goal = PURPOSE_ACCOUNT_GOALS.get(account_name)
-                goal_text = f'（目標 {goal:,}円）' if goal else ''
-                # goalがある場合とない場合でのコーディング
-                st.markdown(f'##### {account_name}{goal_text}')
-                st.pyplot(fig)
-
-        st.write('---')
-        st.subheader('📈 代表口座の推移')
-        main_account_plot = EM.make_main_account_plot()
-        if main_account_plot is not None:
-            st.pyplot(main_account_plot)
-        else:
-            st.info(f'集計可能な履歴がありません。')
+        fig_tab_content(EM, options, default_idx)
 
     with lend_tab:
         lend_tab_content(lend_managers_dict, EM)
