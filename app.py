@@ -14,6 +14,11 @@ written by Kohei Yoshida, 2026/06/09
     - データ追加タブ: 銀行CSV・デビットCSVのアップロード
     - 買い物タブ: 買い物リストの管理（追加・購入済み処理）
     - ストックタブ: ストックリストの管理（消費・削除）
+
+TODO:
+    - True Falseの見え方は視認性に悪いため、変更する。
+    - 複数の項目を一気に追加できる構成にする方が早い？
+    - googleへのアクセスを極力減らす構成にする
 """
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -407,14 +412,16 @@ elif st.session_state['authentication_status']:
 
         # 新規追加フォーム
         with st.expander('追加'):
-            new_name = st.text_input('品名', key=f'new_shopping_name_{st.session_state.shopping_form_key}')
+            new_name = st.text_input('品名（「、」で区切ると複数同時追加できます）',
+                                    key=f'new_shopping_name_{st.session_state.shopping_form_key}')
             new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
             new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
             if st.button('追加', key='add_shopping_btn'):
                 if new_name:
-                    IM.add_shopping_item(new_name, new_category, new_is_stock)
+                    names = [n for n in new_name.split('、') if n.strip()]
+                    IM.add_shopping_items(names, new_category, new_is_stock)
                     st.session_state.shopping_form_key += 1
-                    st.session_state.shopping_df = None  # キャッシュをリセット
+                    st.session_state.shopping_df = None
                     st.rerun()
                 else:
                     st.warning('品名を入力してください。')
@@ -426,18 +433,24 @@ elif st.session_state['authentication_status']:
             selected_indexes = []
             for category, cat_df in IM.each_category_df_generator(shopping_df):
                 st.markdown(f'###### {category}')
-                disabled_cols = cat_df.keys()
+                # ストック列をbooleanに変換してチェックボックス表示にする
                 cat_df = cat_df.copy()
+                cat_df['ストック'] = cat_df['ストック'].map({'True': True, 'False': False})
                 cat_df['購入済み'] = False
-                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
+                edited = st.data_editor(cat_df, disabled=['品名'], hide_index=True,
                                         key=f'shopping_editor_{category}')
+                # ストックフラグの変更を検知してスプレッドシートに反映する
+                for idx in cat_df.index:
+                    if edited.at[idx, 'ストック'] != cat_df.at[idx, 'ストック']:
+                        IM.update_stock_flag(shopping_df, idx, edited.at[idx, 'ストック'])
+                        st.session_state.shopping_df = None
+                        st.rerun()
                 selected_indexes += list(edited[edited['購入済み'] == True].index)
 
             if selected_indexes and st.button('購入済みにする'):
-                selected_indexes += list(edited[edited['購入済み'] == True].index)
                 IM.purchase_items(shopping_df, selected_indexes)
-                st.session_state.shopping_df = None  # キャッシュをリセット
-                st.session_state.stock_df = None     # ストックキャッシュもリセット
+                st.session_state.shopping_df = None
+                st.session_state.stock_df = None
                 st.rerun()
 
     with stock_tab:

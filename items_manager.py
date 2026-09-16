@@ -96,16 +96,29 @@ class ItemsManager:
                 cat_df = cat_df.drop(self.category_column_name, axis=1)
                 yield category, cat_df
 
-    def add_shopping_item(self, name, category, is_stock):
-        """買い物リストに1件追加する。
+    def add_shopping_items(self, names: list, category, is_stock):
+        """買い物リストに複数件一括追加する。
+        APIアクセスを1回に抑えるためappend_rowsを使用する。
 
         Args:
-            name: 品名
+            names: 品名のリスト
             category: カテゴリ（食品・日用品・家具）
             is_stock: ストック対象か否か（True/False）
         """
         ws = self.ss.worksheet(self.shopping_sheet_name)
-        ws.append_row([name, category, str(is_stock)])
+        rows = [[name, category, str(is_stock)] for name in names]
+        ws.append_rows(rows)
+
+    def update_stock_flag(self, shopping_df, index, new_value):
+        """買い物リストの指定行のストックフラグを更新する。
+
+        Args:
+            shopping_df: 現在の買い物リストのDataFrame
+            index: 更新する行のインデックス
+            new_value: 新しいストックフラグの値（True/False）
+        """
+        shopping_df.at[index, 'ストック'] = str(new_value)
+        self._overwrite_shopping(shopping_df)
 
     def purchase_items(self, shopping_df, selected_indexes):
         """選択した品目を購入済みにする。
