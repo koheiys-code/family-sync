@@ -151,7 +151,7 @@ class ItemsManager:
         stock_ws = self.ss.worksheet(self.stock_sheet_name)
         date_str = date.today().strftime('%Y/%m/%d')
         for _, row in selected_df.iterrows():
-            if row['ストック'] == 'True':
+            if row['ストック'] == self.stock_true:
                 stock_ws.append_row([row['品名'], row['カテゴリ'], date_str])
 
         # 選択した品目を買い物リストから削除する
