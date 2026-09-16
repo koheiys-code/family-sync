@@ -30,6 +30,9 @@ STOCK_SHEET_NAME = 'ストック'
 # categoryの列の名前
 CATEGORY_COLUMN_NAME = 'カテゴリ'
 
+# stockの列の名前
+STOCK_COLUMN_NAME = 'ストック'
+
 # 買い物リストの列定義
 SHOPPING_COLUMNS = ['品名', 'カテゴリ', 'ストック']
 
@@ -38,6 +41,10 @@ STOCK_COLUMNS = ['品名', 'カテゴリ', '登録日']
 
 # 買い物リストの固定カテゴリ
 CATEGORIES = ['食品', '日用品', '家具']
+
+# ストックフラグの値定義
+STOCK_TRUE = '1'
+STOCK_FALSE = '0'
 
 
 class ItemsManager:
@@ -52,10 +59,13 @@ class ItemsManager:
     def __init__(self, ss_url, service_account_info,
                  shopping_sheet_name=SHOPPING_SHEET_NAME,
                  stock_sheet_name=STOCK_SHEET_NAME,
-                 category_column_name = CATEGORY_COLUMN_NAME,
+                 category_column_name=CATEGORY_COLUMN_NAME,
+                 stock_column_name=STOCK_COLUMN_NAME,
                  shopping_columns=SHOPPING_COLUMNS,
                  stock_columns=STOCK_COLUMNS,
-                 categories=CATEGORIES):
+                 categories=CATEGORIES,
+                 stock_true=STOCK_TRUE,
+                 stock_false=STOCK_FALSE):
         # Google Sheets APIの認証
         credentials = Credentials.from_service_account_info(
             service_account_info, scopes=SCOPES
@@ -65,9 +75,12 @@ class ItemsManager:
         self.shopping_sheet_name = shopping_sheet_name
         self.stock_sheet_name = stock_sheet_name
         self.category_column_name = category_column_name
+        self.stock_column_name = stock_column_name
         self.shopping_columns = shopping_columns
         self.stock_columns = stock_columns
         self.categories = categories
+        self.stock_true = stock_true
+        self.stock_false = stock_false
 
         # シートが存在しない場合は自動で新規作成する
         self._ensure_worksheets()
@@ -94,6 +107,9 @@ class ItemsManager:
             cat_df = df[df[self.category_column_name] == category].copy()
             if not cat_df.empty:
                 cat_df = cat_df.drop(self.category_column_name, axis=1)
+                # ストック列が存在する場合はbooleanに変換する
+                if self.stock_column_name in cat_df.columns:
+                    cat_df[self.stock_column_name] = cat_df[self.stock_column_name] == self.stock_true
                 yield category, cat_df
 
     def add_shopping_items(self, names: list, category, is_stock):
@@ -106,7 +122,7 @@ class ItemsManager:
             is_stock: ストック対象か否か（True/False）
         """
         ws = self.ss.worksheet(self.shopping_sheet_name)
-        rows = [[name, category, str(is_stock)] for name in names]
+        rows = [[name, category, self.stock_true if is_stock else self.stock_false] for name in names]
         ws.append_rows(rows)
 
     def update_stock_flag(self, shopping_df, index, new_value):
@@ -117,7 +133,7 @@ class ItemsManager:
             index: 更新する行のインデックス
             new_value: 新しいストックフラグの値（True/False）
         """
-        shopping_df.at[index, 'ストック'] = str(new_value)
+        shopping_df.at[index, self.stock_column_name] = STOCK_TRUE if new_value else STOCK_FALSE
         self._overwrite_shopping(shopping_df)
 
     def purchase_items(self, shopping_df, selected_indexes):
@@ -154,7 +170,7 @@ class ItemsManager:
         # 買い物リストへ追加する（ストック=Trueで登録）
         shopping_ws = self.ss.worksheet(self.shopping_sheet_name)
         for _, row in selected_df.iterrows():
-            shopping_ws.append_row([row['品名'], row['カテゴリ'], 'True'])
+            shopping_ws.append_row([row['品名'], row['カテゴリ'], STOCK_TRUE])
 
         # 選択した品目をストックリストから削除する
         new_df = stock_df.drop(selected_indexes).reset_index(drop=True)

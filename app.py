@@ -435,7 +435,6 @@ elif st.session_state['authentication_status']:
                 st.markdown(f'###### {category}')
                 # ストック列をbooleanに変換してチェックボックス表示にする
                 cat_df = cat_df.copy()
-                cat_df['ストック'] = cat_df['ストック'].map({'True': True, 'False': False})
                 cat_df['購入済み'] = False
                 edited = st.data_editor(cat_df, disabled=['品名'], hide_index=True,
                                         key=f'shopping_editor_{category}')
