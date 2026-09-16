@@ -101,7 +101,7 @@ class ItemsManager:
                 cat_df = cat_df.drop(CATEGORY_COLUMN_NAME, axis=1)
                 # ストック列が存在する場合はbooleanに変換する
                 if STOCK_COLUMN_NAME in cat_df.columns:
-                    cat_df[STOCK_COLUMN_NAME] = cat_df[STOCK_COLUMN_NAME] == self.stock_true
+                    cat_df[STOCK_COLUMN_NAME] = cat_df[STOCK_COLUMN_NAME] == STOCK_TRUE
                 yield category, cat_df
 
     def add_shopping_items(self, names: list, category, is_stock):
