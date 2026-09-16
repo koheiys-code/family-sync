@@ -412,7 +412,8 @@ elif st.session_state['authentication_status']:
 
         # 新規追加フォーム
         with st.expander('追加'):
-            new_name = st.text_input('品名（「、」で区切ると複数同時追加できます）',
+            new_name = st.text_input('品名',
+                                     help='「、」で区切ると複数同時追加できます',
                                     key=f'new_shopping_name_{st.session_state.shopping_form_key}')
             new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
             new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
