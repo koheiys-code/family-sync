@@ -16,9 +16,8 @@ written by Kohei Yoshida, 2026/06/09
     - ストックタブ: ストックリストの管理（消費・削除）
 
 TODO:
-    - True Falseの見え方は視認性に悪いため、変更する。
-    - 複数の項目を一気に追加できる構成にする方が早い？
-    - googleへのアクセスを極力減らす構成にする
+    - ストックの方に直接追加するプログラムを作る。
+    - 入金金額、出勤金額について、それぞれの大分類の積み上げ棒グラフで作る。
 """
 import streamlit as st
 import streamlit_authenticator as stauth
