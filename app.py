@@ -199,6 +199,98 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
                     st.rerun()
 
 
+@st.fragment
+def shopping_tab_content(IM):
+    """買い物タブの描画。
+    @st.fragmentにより、タブ内のrerunがアプリ全体を再実行せずに
+    このfragmentのみを再実行するため、家計簿側のAPIアクセスが発生しない。
+    """
+    # 買い物リストの取得（session_stateにキャッシュ、操作後はリセット）
+    if st.session_state.shopping_df is None:
+        st.session_state.shopping_df = IM.get_shopping_df()
+    shopping_df = st.session_state.shopping_df
+
+    # 新規追加フォーム
+    with st.expander('追加'):
+        new_name = st.text_input('品名',
+                                 help='「、」で区切ると複数同時追加できます',
+                                 key=f'new_shopping_name_{st.session_state.shopping_form_key}')
+        new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
+        new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
+        if st.button('追加', key='add_shopping_btn'):
+            if new_name:
+                names = [n for n in new_name.split('、') if n.strip()]
+                IM.add_shopping_items(names, new_category, new_is_stock)
+                st.session_state.shopping_form_key += 1
+                st.session_state.shopping_df = None
+                st.rerun()
+            else:
+                st.warning('品名を入力してください。')
+
+    # 買い物リストの表示（カテゴリごと）
+    if shopping_df.empty:
+        st.info('買い物リストに項目がありません。')
+    else:
+        selected_indexes = []
+        for category, cat_df in IM.each_category_df_generator(shopping_df):
+            st.markdown(f'###### {category}')
+            cat_df = cat_df.copy()
+            cat_df['購入済み'] = False
+            edited = st.data_editor(cat_df, disabled=[items_manager.ITEM_COLUMN_NAME],
+                                    hide_index=True, key=f'shopping_editor_{category}')
+            # ストックフラグの変更を検知してスプレッドシートに反映する
+            for idx in cat_df.index:
+                if edited.at[idx, items_manager.STOCK_COLUMN_NAME] != cat_df.at[idx, items_manager.STOCK_COLUMN_NAME]:
+                    IM.update_stock_flag(shopping_df, idx, edited.at[idx, items_manager.STOCK_COLUMN_NAME])
+                    st.session_state.shopping_df = None
+                    st.rerun()
+            selected_indexes += list(edited[edited['購入済み'] == True].index)
+
+        if selected_indexes and st.button('購入済みにする'):
+            IM.purchase_items(shopping_df, selected_indexes)
+            st.session_state.shopping_df = None
+            st.session_state.stock_df = None
+            st.rerun()
+
+
+@st.fragment
+def stock_tab_content(IM):
+    """ストックタブの描画。
+    @st.fragmentにより、タブ内のrerunがアプリ全体を再実行せずに
+    このfragmentのみを再実行するため、家計簿側のAPIアクセスが発生しない。
+    """
+    # ストックリストの取得（session_stateにキャッシュ）
+    if st.session_state.stock_df is None:
+        st.session_state.stock_df = IM.get_stock_df()
+    stock_df = st.session_state.stock_df
+
+    if stock_df.empty:
+        st.info('ストックリストに項目がありません。')
+    else:
+        selected_stock_indexes = []
+        for category, cat_df in IM.each_category_df_generator(stock_df):
+            st.markdown(f'###### {category}')
+            disabled_cols = cat_df.keys()
+            cat_df = cat_df.copy()
+            cat_df['選択'] = False
+            edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
+                                    key=f'stock_editor_{category}')
+            selected_stock_indexes += list(edited[edited['選択'] == True].index)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if selected_stock_indexes and st.button('消費済み（買い物リストへ戻す）'):
+                IM.consume_stock_items(stock_df, selected_stock_indexes)
+                st.session_state.stock_df = None
+                st.session_state.shopping_df = None
+                st.rerun()
+        with col2:
+            if selected_stock_indexes and st.button('削除'):
+                IM.delete_stock_items(stock_df, selected_stock_indexes)
+                st.session_state.stock_df = None
+                st.rerun()
+
+
 # ユーザー設定の読み込み
 with open(CONFIG_YAML_PATH) as f:
     config = yaml.load(f, Loader=SafeLoader)
@@ -405,82 +497,7 @@ elif st.session_state['authentication_status']:
                         st.dataframe(decorate_df, hide_index=True)
 
     with shopping_tab:
-        # 買い物リストの取得（session_stateにキャッシュ、操作後はリセット）
-        if st.session_state.shopping_df is None:
-            st.session_state.shopping_df = IM.get_shopping_df()
-        shopping_df = st.session_state.shopping_df
-
-        # 新規追加フォーム
-        with st.expander('追加'):
-            new_name = st.text_input('品名',
-                                     help='「、」で区切ると複数同時追加できます',
-                                    key=f'new_shopping_name_{st.session_state.shopping_form_key}')
-            new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_shopping_cat')
-            new_is_stock = st.checkbox('ストック対象', key='new_shopping_stock')
-            if st.button('追加', key='add_shopping_btn'):
-                if new_name:
-                    names = [n for n in new_name.split('、') if n.strip()]
-                    IM.add_shopping_items(names, new_category, new_is_stock)
-                    st.session_state.shopping_form_key += 1
-                    st.session_state.shopping_df = None
-                    st.rerun()
-                else:
-                    st.warning('品名を入力してください。')
-
-        # 買い物リストの表示（カテゴリごと）
-        if shopping_df.empty:
-            st.info('買い物リストに項目がありません。')
-        else:
-            selected_indexes = []
-            for category, cat_df in IM.each_category_df_generator(shopping_df):
-                st.markdown(f'###### {category}')
-                # ストック列をbooleanに変換してチェックボックス表示にする
-                cat_df = cat_df.copy()
-                cat_df['購入済み'] = False
-                edited = st.data_editor(cat_df, disabled=['品名'], hide_index=True,
-                                        key=f'shopping_editor_{category}')
-                # ストックフラグの変更を検知してスプレッドシートに反映する
-                for idx in cat_df.index:
-                    if edited.at[idx, 'ストック'] != cat_df.at[idx, 'ストック']:
-                        IM.update_stock_flag(shopping_df, idx, edited.at[idx, 'ストック'])
-                        st.session_state.shopping_df = None
-                        st.rerun()
-                selected_indexes += list(edited[edited['購入済み'] == True].index)
-
-            if selected_indexes and st.button('購入済みにする'):
-                IM.purchase_items(shopping_df, selected_indexes)
-                st.session_state.shopping_df = None
-                st.session_state.stock_df = None
-                st.rerun()
+        shopping_tab_content(IM)
 
     with stock_tab:
-        # ストックリストの取得（session_stateにキャッシュ）
-        if st.session_state.stock_df is None:
-            st.session_state.stock_df = IM.get_stock_df()
-        stock_df = st.session_state.stock_df
-
-        if stock_df.empty:
-            st.info('ストックリストに項目がありません。')
-        else:
-            selected_stock_indexes = []
-            for category, cat_df in IM.each_category_df_generator(stock_df):
-                st.markdown(f'###### {category}')
-                disabled_cols = cat_df.keys()
-                cat_df = cat_df.copy()
-                cat_df['選択'] = False
-                edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
-                                        key=f'stock_editor_{category}')
-                selected_stock_indexes += list(edited[edited['選択'] == True].index)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                if selected_stock_indexes and st.button('消費済み（買い物リストへ戻す）'):
-                    IM.consume_stock_items(stock_df, selected_stock_indexes)
-                    st.session_state.stock_df = None    # キャッシュをリセット
-                    st.session_state.shopping_df = None # 買い物キャッシュもリセット
-                    st.rerun()
-            with col2:
-                if selected_stock_indexes and st.button('削除'):
-                    IM.delete_stock_items(stock_df, selected_stock_indexes)
-                    st.session_state.stock_df = None  # キャッシュをリセット
-                    st.rerun()
+        stock_tab_content(IM)
