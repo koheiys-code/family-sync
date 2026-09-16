@@ -418,7 +418,8 @@ def shopping_tab_content(IM):
             cat_df = cat_df.copy()
             cat_df['購入済み'] = False
             edited = st.data_editor(cat_df, disabled=[items_manager.ITEM_COLUMN_NAME],
-                                    hide_index=True, key=f'shopping_editor_{category}')
+                                    hide_index=True, height='content',
+                                    key=f'shopping_editor_{category}')
             # ストックフラグの変更を検知してスプレッドシートに反映する
             for idx in cat_df.index:
                 if edited.at[idx, items_manager.STOCK_COLUMN_NAME] != cat_df.at[idx, items_manager.STOCK_COLUMN_NAME]:
@@ -455,7 +456,7 @@ def stock_tab_content(IM):
             cat_df = cat_df.copy()
             cat_df['選択'] = False
             edited = st.data_editor(cat_df, disabled=disabled_cols, hide_index=True,
-                                    key=f'stock_editor_{category}')
+                                    height='content', key=f'stock_editor_{category}')
             selected_stock_indexes += list(edited[edited['選択'] == True].index)
 
         col1, col2 = st.columns(2)
