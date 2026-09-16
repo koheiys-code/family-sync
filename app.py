@@ -200,6 +200,43 @@ def calc_monthly_payment(lend_manager, expense_manager, ratio=PAYMENT_RATIO):
 
 
 @st.fragment
+def lend_tab_content(lend_managers_dict, EM):
+    """立替タブの描画。
+    @st.fragmentにより、タブ内のrerunがアプリ全体を再実行しない。
+    """
+    user_key = ''
+    for name, LM in lend_managers_dict.items():
+        cost_sum = LM.cost_sum
+        decorate_df = LM.get_decorated_df()
+        st.write(f'{name}の立替合計金額は{cost_sum:,}円です。')
+        if not LM.permission:
+            st.dataframe(decorate_df, hide_index=True)
+        else:
+            user_key = name
+            if st.button(f'{user_key}の納入額を計算'):
+                user_LM = lend_managers_dict[user_key]
+                calc_monthly_payment(user_LM, EM)
+
+            if decorate_df.empty:
+                if st.button('追加', key=f'{name}_add_lend'):
+                    add_lend(LM, EM)
+                st.dataframe(decorate_df, hide_index=True)
+            else:
+                delete_mode = st.toggle('消去', key='delete_mode')
+                if delete_mode:
+                    deletable_df = decorate_df.copy()
+                    disabled = deletable_df.keys()
+                    deletable_df['消去'] = False
+                    deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
+                    if st.button('消去'):
+                        apply_delete(LM, deletable_df)
+                else:
+                    if st.button('追加', key=f'{name}_add_lend'):
+                        add_lend(LM, EM)
+                    st.dataframe(decorate_df, hide_index=True)
+
+
+@st.fragment
 def shopping_tab_content(IM):
     """買い物タブの描画。
     @st.fragmentにより、タブ内のrerunがアプリ全体を再実行せずに
@@ -465,36 +502,7 @@ elif st.session_state['authentication_status']:
             st.info(f'集計可能な履歴がありません。')
 
     with lend_tab:
-        user_key = ''
-        for name, LM in lend_managers_dict.items():
-            cost_sum = LM.cost_sum
-            decorate_df = LM.get_decorated_df()
-            st.write(f'{name}の立替合計金額は{cost_sum:,}円です。')
-            if not LM.permission:
-                st.dataframe(decorate_df, hide_index=True)
-            else:
-                user_key = name
-                if st.button(f'{user_key}の納入額を計算'):
-                    user_LM = lend_managers_dict[user_key]
-                    calc_monthly_payment(user_LM, EM)
-
-                if decorate_df.empty:
-                    if st.button('追加', key=f'{name}_add_lend'):
-                        add_lend(LM, EM)
-                    st.dataframe(decorate_df, hide_index=True)
-                else:
-                    delete_mode = st.toggle('消去', key='delete_mode')
-                    if delete_mode:
-                        deletable_df = decorate_df.copy()
-                        disabled = deletable_df.keys()
-                        deletable_df['消去'] = False
-                        deletable_df = st.data_editor(deletable_df, disabled=disabled, hide_index=True)
-                        if st.button('消去'):
-                            apply_delete(LM, deletable_df)
-                    else:
-                        if st.button('追加', key=f'{name}_add_lend'):
-                            add_lend(LM, EM)
-                        st.dataframe(decorate_df, hide_index=True)
+        lend_tab_content(lend_managers_dict, EM)
 
     with shopping_tab:
         shopping_tab_content(IM)
