@@ -241,6 +241,7 @@ def expenses_tab_content(EM, options, default_idx):
                     # 1行目の列名でCSVの種別を判定する（ファイル名に依存しない）
                     header = file.readline().decode('shift-jis').strip().split(',')
                     file.seek(0)  # 読み込み位置を先頭に戻す、これをしないと次のload_*_csvの関数で1行目が飛ばされる。
+                    st.write(header)
                     if '残高(円)' in header:
                         bank_csv_list.append(file)
                     elif 'お取引内容' in header:
@@ -254,7 +255,7 @@ def expenses_tab_content(EM, options, default_idx):
                     EM.update_debit_contents(file)
                 for file in unknown_list:
                     st.info(f'読み込めませんでした。 {file.name}')
-                st.rerun()
+                # st.rerun()
 
 
 @st.fragment
