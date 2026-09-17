@@ -240,6 +240,9 @@ def expenses_tab_content(EM, options, default_idx):
                 for file in files:
                     # 1行目の列名でCSVの種別を判定する（ファイル名に依存しない）
                     header = file.readline().decode('shift-jis').strip().split(',')
+                    line = file.readline()
+                    st.write(type(line))
+                    st.write(line)
                     file.seek(0)  # 読み込み位置を先頭に戻す、これをしないと次のload_*_csvの関数で1行目が飛ばされる。
                     st.write(header)
                     if '残高(円)' in header:
