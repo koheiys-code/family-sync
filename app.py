@@ -260,7 +260,7 @@ def expenses_tab_content(EM, options, default_idx):
                     EM.update_debit_contents(file)
                 for file in unknown_list:
                     st.info(f'読み込めませんでした。 {file.name}')
-                # st.rerun()
+                st.rerun()
 
 
 @st.fragment
