@@ -238,16 +238,16 @@ def expenses_tab_content(EM, options, default_idx):
                 debit_csv_list = []
                 unknown_list = []
                 for file in files:
-                    # ファイル名の先頭でCSVの種別を判定する
-                    # nyushukinmeisai_*.csv -> 銀行の入出金明細
-                    # meisai_*.csv -> デビットカードの利用明細
-                    identifier = file.name.split('_')[0]
-                    if identifier == 'nyushukinmeisai':
+                    # 1行目の列名でCSVの種別を判定する（ファイル名に依存しない）
+                    header = file.readline().decode('shift-jis').strip().split(',')
+                    file.seek(0)  # 読み込み位置を先頭に戻す、これをしないと次のload_*_csvの関数で1行目が飛ばされる。
+                    if '残高(円)' in header:
                         bank_csv_list.append(file)
-                    elif identifier == 'meisai':
+                    elif 'お取引内容' in header:
                         debit_csv_list.append(file)
                     else:
                         unknown_list.append(file)
+
                 for file in bank_csv_list:
                     EM.load_bank_csv(file)
                 for file in debit_csv_list:

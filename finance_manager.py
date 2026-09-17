@@ -474,7 +474,7 @@ class ExpensesManager(Manager):
         return fig
 
     @Manager.figure_decorator
-    def make_main_category_trend_plots(self, cut_off_value=3000):
+    def make_main_category_trend_plots(self, cut_off_value=5000):
         """全大分類の月次推移を出金・入金それぞれ積み上げ棒グラフで作成する。
         戻り値は(figure_out, figure_in)のタプル。
         データがない場合はそれぞれNoneを返す。
@@ -518,6 +518,7 @@ class ExpensesManager(Manager):
             fig, ax = plt.subplots()
             trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
 
+            # ブロック内テキスト表示
             for c in ax.containers:
                 labels = [
                     f'{int(v):,}' if v >= cut_off_value else ''
