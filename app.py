@@ -17,12 +17,7 @@ written by Kohei Yoshida, 2026/06/09
 
 TODO:
     - ストックの方に直接追加するプログラムを作る。
-    - 買い物リスト、ストックのタブのグラフはスクロール表示にせずに、長くても全部表示するようにする。
     - 入金金額、出勤金額について、それぞれの大分類の積み上げ棒グラフで作る。
-
-とても良さそうです。次に、以下の2つの実装をしたいです。変更箇所とプログラムを出力して下さい。
-①ストックのリストに直接するプログラムを作りたいです。買い物リストに既に実装しているような形式で、追記をお願いします。
-②買い物リストおよびストックのタブでは、表のスクロール表示はせずに、長くても全部表示する設定にしたいです。
 """
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -111,6 +106,8 @@ def initialize_session_state():
         st.session_state.stock_df = None
     if "shopping_form_key" not in st.session_state:
         st.session_state.shopping_form_key = 0
+    if "stock_form_key" not in st.session_state:
+        st.session_state.stock_form_key = 0
 
 
 @st.dialog('編集モード')
@@ -445,6 +442,22 @@ def stock_tab_content(IM):
     if st.session_state.stock_df is None:
         st.session_state.stock_df = IM.get_stock_df()
     stock_df = st.session_state.stock_df
+
+    # 新規追加フォーム
+    with st.expander('追加'):
+        new_name = st.text_input('品名',
+                                 help='「、」で区切ると複数同時追加できます',
+                                 key=f'new_stock_name_{st.session_state.stock_form_key}')
+        new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_stock_cat')
+        if st.button('追加', key='add_stock_btn'):
+            if new_name:
+                names = [n for n in new_name.split('、') if n.strip()]
+                IM.add_stock_items(names, new_category)
+                st.session_state.stock_form_key += 1
+                st.session_state.stock_df = None
+                st.rerun()
+            else:
+                st.warning('品名を入力してください。')
 
     if stock_df.empty:
         st.info('ストックリストに項目がありません。')

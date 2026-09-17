@@ -143,12 +143,25 @@ class ItemsManager:
         stock_ws = self.ss.worksheet(self.stock_sheet_name)
         date_str = date.today().strftime('%Y/%m/%d')
         for _, row in selected_df.iterrows():
-            if row['ストック'] == STOCK_TRUE:
+            if row[STOCK_COLUMN_NAME] == STOCK_TRUE:
                 stock_ws.append_row([row[ITEM_COLUMN_NAME], row[CATEGORY_COLUMN_NAME], date_str])
 
         # 選択した品目を買い物リストから削除する
         new_df = shopping_df.drop(selected_indexes).reset_index(drop=True)
         self._overwrite_shopping(new_df)
+
+    def add_stock_items(self, names: list, category):
+        """ストックリストに複数件一括追加する。
+        APIアクセスを1回に抑えるためappend_rowsを使用する。
+
+        Args:
+            names: 品名のリスト
+            category: カテゴリ（食品・日用品・家具）
+        """
+        ws = self.ss.worksheet(self.stock_sheet_name)
+        date_str = date.today().strftime('%Y/%m/%d')
+        rows = [[name.strip(), category, date_str] for name in names]
+        ws.append_rows(rows)
 
     def consume_stock_items(self, stock_df, selected_indexes):
         """選択したストック品目を消費済みにし、買い物リストへ追加する。
