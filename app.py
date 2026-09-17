@@ -282,6 +282,18 @@ def fig_tab_content(EM, options, default_idx):
             st.info('集計可能な履歴がありません。')
 
     st.write('---')
+    st.subheader('📊 大分類別の月次推移')
+    fig_out, fig_in = EM.make_main_category_trend_plots()
+    if fig_out is not None:
+        st.markdown('###### 出金')
+        st.pyplot(fig_out)
+    if fig_in is not None:
+        st.markdown('###### 入金')
+        st.pyplot(fig_in)
+    if fig_out is None and fig_in is None:
+        st.info('集計可能な履歴がありません。')
+
+    st.write('---')
     st.subheader('🔍 大分類別の推移')
     main_categories = list(EM.categories.keys())
     selected_main_cat = st.selectbox('', main_categories, key='main_cat_options')

@@ -473,6 +473,68 @@ class ExpensesManager(Manager):
         ax.axis('equal')
         return fig
 
+    @Manager.figure_decorator
+    def make_main_category_trend_plots(self):
+        """全大分類の月次推移を出金・入金それぞれ積み上げ棒グラフで作成する。
+        戻り値は(figure_out, figure_in)のタプル。
+        データがない場合はそれぞれNoneを返す。
+        """
+        df_list = []
+        for repr_name, sheet_name in self.sheet_name_dict.items():
+            df = self.get_database(sheet_name)
+            if df is not None and not df.empty:
+                df = df.copy()
+                df['対象月'] = repr_name
+                df_list.append(df)
+
+        if not df_list:
+            return None, None
+
+        combined_df = pd.concat(df_list, ignore_index=True)
+
+        def make_fig(mode):
+            """出金または入金の大分類別積み上げ棒グラフを作成する"""
+            col = '出金金額' if mode == '出金' else '入金金額'
+            target_df = combined_df[combined_df[col] != '0'].copy()
+            target_df['金額'] = target_df[col].astype(int)
+            # 未分類・振替は除外する
+            target_df = target_df[~target_df['大分類'].isin([self.uncategorized, '振替'])]
+            if target_df.empty:
+                return None
+
+            trend_df = target_df.pivot_table(
+                index='対象月',
+                columns='大分類',
+                values='金額',
+                aggfunc='sum'
+            ).fillna(0)
+
+            month_order = list(self.sheet_name_dict.keys())
+            trend_df = trend_df.reindex(month_order).dropna(how='all')
+
+            if trend_df.empty:
+                return None
+
+            fig, ax = plt.subplots()
+            trend_df.plot(kind='bar', stacked=True, ax=ax, width=0.5)
+
+            # 棒の上に月合計を表示する
+            col_sums = trend_df.sum(axis=1)
+            for i, (month, total) in enumerate(col_sums.items()):
+                ax.text(i, total, f'{int(total):,}', ha='center', va='bottom',
+                        fontsize=9, fontweight='bold')
+
+            ax.set_title(f'{mode}金額の推移', fontsize=13, pad=15)
+            ax.set_xlabel('月', fontsize=11)
+            ax.set_xticklabels(trend_df.index, rotation=0)
+            ax.set_ylabel('金額（円）', fontsize=11)
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'{int(x):,}'))
+            ax.grid(axis='y', linestyle='--', alpha=0.5)
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles[::-1], labels[::-1], bbox_to_anchor=(1.02, 1), loc='upper left')
+            return fig
+
+        return make_fig('出金'), make_fig('入金')
 
     @Manager.figure_decorator
     def make_sub_category_trend_plot(self, main_category, is_ratio_display,
