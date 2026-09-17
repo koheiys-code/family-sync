@@ -245,8 +245,6 @@ def expenses_tab_content(EM, options, default_idx):
                     line = file.readline().decode('shift-jis')
                     header = next(csv.reader([line]))
                     file.seek(0)  # 読み込み位置を先頭に戻す、これをしないと次のload_*_csvの関数で1行目が飛ばされる。
-                    st.write(type(header))
-                    st.write(header)
                     if '残高(円)' in header:
                         bank_csv_list.append(file)
                     elif 'お取引内容' in header:
