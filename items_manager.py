@@ -40,7 +40,7 @@ SHOPPING_COLUMNS = [ITEM_COLUMN_NAME, CATEGORY_COLUMN_NAME, STOCK_COLUMN_NAME]
 STOCK_COLUMNS = [ITEM_COLUMN_NAME, CATEGORY_COLUMN_NAME, DATE_COLUMN_NAME]
 
 # 買い物リストの固定カテゴリ
-CATEGORIES = ['冷凍食品', '食品', '調味料', '日用品', '家具']
+CATEGORIES = ['冷凍食品', '食品', '調味料', '日用品', '家具', '期限付き']
 
 # ストックフラグの値定義
 STOCK_TRUE = '1'
