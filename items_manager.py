@@ -111,6 +111,8 @@ class ItemsManager:
                         ascending=True,
                         na_position='last'  # 期限日が空欄のものは末尾に
                     )
+                else:
+                    cat_df = cat_df.drop(DATE_COLUMN_NAME, axis=1)
                 yield category, cat_df
 
     def add_shopping_items(self, names: list, category, is_stock):
