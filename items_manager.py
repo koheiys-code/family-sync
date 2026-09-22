@@ -111,7 +111,7 @@ class ItemsManager:
                         ascending=True,
                         na_position='last'  # 期限日が空欄のものは末尾に
                     )
-                else:
+                elif category != '期限付き' and DATE_COLUMN_NAME in cat_df.columns:
                     cat_df = cat_df.drop(DATE_COLUMN_NAME, axis=1)
                 yield category, cat_df
 
