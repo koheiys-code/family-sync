@@ -31,7 +31,7 @@ STOCK_SHEET_NAME = 'ストック'
 ITEM_COLUMN_NAME = '品物'
 CATEGORY_COLUMN_NAME = 'カテゴリ'
 STOCK_COLUMN_NAME = 'ストック'
-DATE_COLUMN_NAME = '登録日'
+DATE_COLUMN_NAME = '期限日'
 
 # 買い物リストの列定義
 SHOPPING_COLUMNS = [ITEM_COLUMN_NAME, CATEGORY_COLUMN_NAME, STOCK_COLUMN_NAME]
@@ -94,7 +94,9 @@ class ItemsManager:
         return pd.DataFrame(rows[1:], columns=self.stock_columns)
 
     def each_category_df_generator(self, df):
-        """買い物リストまたはストックリストを引数として、categoryごとに分けて返す"""
+        """買い物リストまたはストックリストを引数として、categoryごとに分けて返す。
+        期限付きカテゴリのみ期限日の昇順でソートして返す。
+        """
         for category in self.categories:
             cat_df = df[df[CATEGORY_COLUMN_NAME] == category].copy()
             if not cat_df.empty:
@@ -102,6 +104,13 @@ class ItemsManager:
                 # ストック列が存在する場合はbooleanに変換する
                 if STOCK_COLUMN_NAME in cat_df.columns:
                     cat_df[STOCK_COLUMN_NAME] = cat_df[STOCK_COLUMN_NAME] == STOCK_TRUE
+                # 期限付きカテゴリは期限日昇順でソートする
+                if category == '期限付き' and DATE_COLUMN_NAME in cat_df.columns:
+                    cat_df = cat_df.sort_values(
+                        DATE_COLUMN_NAME,
+                        ascending=True,
+                        na_position='last'  # 期限日が空欄のものは末尾に
+                    )
                 yield category, cat_df
 
     def add_shopping_items(self, names: list, category, is_stock):
@@ -150,16 +159,17 @@ class ItemsManager:
         new_df = shopping_df.drop(selected_indexes).reset_index(drop=True)
         self._overwrite_shopping(new_df)
 
-    def add_stock_items(self, names: list, category):
+    def add_stock_items(self, names: list, category, expiry_date=None):
         """ストックリストに複数件一括追加する。
         APIアクセスを1回に抑えるためappend_rowsを使用する。
 
         Args:
             names: 品名のリスト
-            category: カテゴリ（食品・日用品・家具）
+            category: カテゴリ
+            expiry_date: 期限日（datetime.date）。期限なしの場合はNone。
         """
         ws = self.ss.worksheet(self.stock_sheet_name)
-        date_str = date.today().strftime('%Y/%m/%d')
+        date_str = expiry_date.strftime('%Y/%m/%d') if expiry_date else ''
         rows = [[name.strip(), category, date_str] for name in names]
         ws.append_rows(rows)
 

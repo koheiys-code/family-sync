@@ -465,10 +465,14 @@ def stock_tab_content(IM):
                                  help='「、」で区切ると複数同時追加できます',
                                  key=f'new_stock_name_{st.session_state.stock_form_key}')
         new_category = st.selectbox('カテゴリ', items_manager.CATEGORIES, key='new_stock_cat')
+        # 期限付きカテゴリの時のみ期限日の入力欄を表示する
+        expiry_date = None
+        if new_category == '期限付き':
+            expiry_date = st.date_input('期限日', key='new_stock_expiry')
         if st.button('追加', key='add_stock_btn'):
             if new_name:
                 names = [n for n in new_name.split('、') if n.strip()]
-                IM.add_stock_items(names, new_category)
+                IM.add_stock_items(names, new_category, expiry_date)
                 st.session_state.stock_form_key += 1
                 st.session_state.stock_df = None
                 st.rerun()
