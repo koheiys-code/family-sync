@@ -441,11 +441,14 @@ def shopping_tab_content(IM):
                     st.rerun()
             selected_indexes += list(edited[edited['購入済み'] == True].index)
 
-        if selected_indexes and st.button('購入済みにする'):
-            IM.purchase_items(shopping_df, selected_indexes)
-            st.session_state.shopping_df = None
-            st.session_state.stock_df = None
-            st.rerun()
+        if st.button('購入済みにする'):
+            if selected_indexes:
+                IM.purchase_items(shopping_df, selected_indexes)
+                st.session_state.shopping_df = None
+                st.session_state.stock_df = None
+                st.rerun()
+            else:
+                st.warning('品目を選択してください。')
 
 
 @st.fragment
@@ -494,16 +497,22 @@ def stock_tab_content(IM):
 
         col1, col2 = st.columns(2)
         with col1:
-            if selected_stock_indexes and st.button('消費済み（買い物リストへ戻す）'):
-                IM.consume_stock_items(stock_df, selected_stock_indexes)
-                st.session_state.stock_df = None
-                st.session_state.shopping_df = None
-                st.rerun()
+            if st.button('消費済み（買い物リストへ戻す）'):
+                if selected_stock_indexes:
+                    IM.consume_stock_items(stock_df, selected_stock_indexes)
+                    st.session_state.stock_df = None
+                    st.session_state.shopping_df = None
+                    st.rerun()
+                else:
+                    st.warning('品目を選択してください。')
         with col2:
-            if selected_stock_indexes and st.button('削除'):
-                IM.delete_stock_items(stock_df, selected_stock_indexes)
-                st.session_state.stock_df = None
-                st.rerun()
+            if st.button('削除'):
+                if selected_stock_indexes:
+                    IM.delete_stock_items(stock_df, selected_stock_indexes)
+                    st.session_state.stock_df = None
+                    st.rerun()
+                else:
+                    st.warning('品目を選択してください。')
 
 
 # ユーザー設定の読み込み
